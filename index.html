@@ -42,9 +42,9 @@ const DEFAULT = {
   welcomeBody:  "We are honored to invite you into this intentional private space for senior executive Christian leaders. In a world that demands constant excellence and often causes you to compartmentalize your belief in God and your faith, Abide is a dedicated harbor for your soul, bridging the gap between professional leadership, spiritual depth, and true rest.",
   welcomeBody2: "Please share a few details as you enter this space.",
   ctaLabel:     "Enter the Space",
-  logoUrl:      "https://i.imgur.com/R4rxBb2.jpeg",
-  bgImageUrl:   "",
-  preset:       0,
+  logoUrl:      "",
+  bgImageUrl:   "https://i.imgur.com/R4rxBb2.jpeg",
+  preset:       1,
   zoomMeetingId:"",
 };
 
@@ -137,8 +137,9 @@ function RegistrationPage({ config, isMobile }) {
   );
 
   const pad = isMobile ? "0 24px 60px" : "0 40px 80px";
+  const overlay = theme.dark ? "15,15,26" : "245,240,232";
   const bgStyle = config.bgImageUrl
-    ? `linear-gradient(rgba(${theme.dark?"15,15,26":"245,240,232"},0.88),rgba(${theme.dark?"15,15,26":"245,240,232"},0.95)) center/cover, url(${config.bgImageUrl}) center/cover`
+    ? `linear-gradient(rgba(${overlay},0.72),rgba(${overlay},0.82)), url(${config.bgImageUrl}) center/cover no-repeat`
     : theme.bg;
 
   return (
