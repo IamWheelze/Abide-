@@ -1,13 +1,406 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Abide — Registration</title>
-    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>✝</text></svg>" />
-  </head>
-  <body style="margin:0;padding:0;">
-    <div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-  </body>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Abide — Registration</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body, #root { height: 100%; }
+    body { font-family: 'Lato', sans-serif; }
+    @keyframes spin    { to { transform: rotate(360deg); } }
+    @keyframes fadeUp  { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    @keyframes fadeIn  { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
+    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 8px; }
+  </style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState, useRef, useEffect } = React;
+
+/* ── Palette presets ──────────────────────────────────────────── */
+const PRESETS = [
+  { name:"Midnight Gold",    accent:"#C9973A", card:"rgba(255,255,255,0.07)", bg:"#0F0F1A", text:"#F5EFE6", sub:"#A89880", border:"rgba(201,151,58,0.25)",  dark:true  },
+  { name:"Ivory & Burgundy", accent:"#6B1A2A", card:"rgba(107,26,42,0.06)",  bg:"#FAF7F2", text:"#1A0A0E", sub:"#7A5C60", border:"rgba(107,26,42,0.2)",    dark:false },
+  { name:"Slate & Olive",    accent:"#8B9E6A", card:"rgba(255,255,255,0.06)",bg:"#111C25", text:"#EDF0E8", sub:"#8A9A8A", border:"rgba(139,158,106,0.25)", dark:true  },
+  { name:"Parchment & Navy", accent:"#1B3A5C", card:"rgba(27,58,92,0.07)",   bg:"#F0EAD8", text:"#0D1B2A", sub:"#5A6A7A", border:"rgba(27,58,92,0.2)",     dark:false },
+];
+
+const DEFAULT = {
+  orgName:      "Abide",
+  tagline:      "Abide in me, and I in you.",
+  taglineRef:   "John 15:4",
+  welcomeTitle: "Welcome",
+  welcomeBody:  "We are honored to invite you into this intentional private space for senior executive Christian leaders. In a world that demands constant excellence and often causes you to compartmentalize your belief in God and your faith, Abide is a dedicated harbor for your soul, bridging the gap between professional leadership, spiritual depth, and true rest.",
+  welcomeBody2: "Please share a few details as you enter this space.",
+  ctaLabel:     "Enter the Space",
+  logoUrl:      "",
+  bgImageUrl:   "",
+  preset:       0,
+  zoomMeetingId:"",
+};
+
+const INTENTS = [
+  "A desire for true rest and spiritual renewal.",
+  "A need for clarity and discernment in leadership.",
+  "A heart for connection and fellowship with like-minded Christian leaders.",
+  "A dedicated time for prayer and reflection.",
+];
+
+/* ── Atoms ────────────────────────────────────────────────────── */
+const Label = ({ children, theme }) => (
+  <div style={{ fontSize:10, letterSpacing:"0.18em", textTransform:"uppercase", fontFamily:"'Lato',sans-serif", fontWeight:700, color:theme.sub, marginBottom:6 }}>{children}</div>
+);
+
+function FormInput({ theme, style, ...props }) {
+  const [focus, setFocus] = useState(false);
+  return (
+    <input onFocus={()=>setFocus(true)} onBlur={()=>setFocus(false)}
+      style={{ width:"100%", padding:"11px 14px", background:"transparent", border:`1px solid ${focus?theme.accent:theme.border}`, borderRadius:6, color:theme.text, fontFamily:"'Lato',sans-serif", fontSize:14, outline:"none", transition:"border-color .2s", ...style }}
+      {...props} />
+  );
+}
+
+const BuilderInput = ({ label, value, onChange, ...rest }) => (
+  <div style={{ marginBottom:13 }}>
+    {label && <div style={{ fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:"#7A6A5A", marginBottom:5, fontFamily:"'Lato',sans-serif" }}>{label}</div>}
+    <input value={value} onChange={e=>onChange(e.target.value)}
+      style={{ width:"100%", padding:"9px 12px", border:"1px solid #DDD5C8", borderRadius:6, fontSize:13, fontFamily:"'Lato',sans-serif", outline:"none", background:"#FDFAF6", color:"#1A0A0E" }}
+      {...rest} />
+  </div>
+);
+
+const BuilderTextarea = ({ label, value, onChange, rows=3 }) => (
+  <div style={{ marginBottom:13 }}>
+    {label && <div style={{ fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:"#7A6A5A", marginBottom:5, fontFamily:"'Lato',sans-serif" }}>{label}</div>}
+    <textarea value={value} rows={rows} onChange={e=>onChange(e.target.value)}
+      style={{ width:"100%", padding:"9px 12px", border:"1px solid #DDD5C8", borderRadius:6, fontSize:13, fontFamily:"'Lato',sans-serif", outline:"none", background:"#FDFAF6", color:"#1A0A0E", resize:"vertical" }} />
+  </div>
+);
+
+const Spinner = ({ color="#fff" }) => (
+  <svg width="18" height="18" viewBox="0 0 18 18" style={{ animation:"spin .8s linear infinite", display:"block" }}>
+    <circle cx="9" cy="9" r="7" fill="none" stroke={color} strokeWidth="2" strokeDasharray="30" strokeDashoffset="10" strokeLinecap="round"/>
+  </svg>
+);
+
+const ZoomIcon = ({ size=18, color="#2D8CFF" }) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+    <rect width="24" height="24" rx="5" fill={color} opacity="0.15"/>
+    <path d="M4 8.5C4 7.67 4.67 7 5.5 7h9C15.33 7 16 7.67 16 8.5v7c0 .83-.67 1.5-1.5 1.5h-9C4.67 17 4 16.33 4 15.5v-7z" fill={color}/>
+    <path d="M16 10.5l4-2.5v8l-4-2.5v-3z" fill={color}/>
+  </svg>
+);
+
+/* ── Registration page ────────────────────────────────────────── */
+function RegistrationPage({ config, isMobile }) {
+  const theme = PRESETS[config.preset];
+  const [form, setForm]     = useState({ name:"", email:"", phone:"", city:"", org:"", intents:[], consent:false });
+  const [status, setStatus] = useState("idle");
+  const [errMsg, setErrMsg] = useState("");
+  const [anim, setAnim]     = useState(false);
+
+  useEffect(()=>{ const t=setTimeout(()=>setAnim(true),80); return ()=>clearTimeout(t); },[]);
+
+  const toggle = item => setForm(f=>({ ...f, intents: f.intents.includes(item) ? f.intents.filter(i=>i!==item) : [...f.intents,item] }));
+
+  const submit = async () => {
+    if (!form.name||!form.email){ setErrMsg("Please enter your name and email to continue."); return; }
+    setErrMsg(""); setStatus("submitting");
+    await new Promise(r=>setTimeout(r,900));
+    setStatus("success");
+  };
+
+  const SectionHead = ({ num, title }) => (
+    <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:22, marginTop:8 }}>
+      <div style={{ width:28, height:28, borderRadius:"50%", border:`1px solid ${theme.accent}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontFamily:"'Lato',sans-serif", color:theme.accent, flexShrink:0 }}>{num}</div>
+      <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:500, color:theme.text, letterSpacing:"0.04em" }}>{title}</div>
+      <div style={{ flex:1, height:1, background:theme.border }}/>
+    </div>
+  );
+
+  const Checkbox = ({ checked, onClick, label }) => (
+    <div onClick={onClick} style={{ display:"flex", alignItems:"flex-start", gap:12, cursor:"pointer", padding:"14px 16px", borderRadius:8, background:checked?`${theme.accent}18`:"transparent", border:`1px solid ${checked?theme.accent:theme.border}`, transition:"all .18s" }}>
+      <div style={{ width:18, height:18, borderRadius:4, border:`1.5px solid ${checked?theme.accent:theme.sub}`, background:checked?theme.accent:"transparent", flexShrink:0, marginTop:1, display:"flex", alignItems:"center", justifyContent:"center", transition:"all .18s" }}>
+        {checked && <svg width="10" height="8" viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1" stroke={theme.dark?"#0F0F1A":"#fff"} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+      </div>
+      <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:theme.text, lineHeight:1.5 }}>{label}</span>
+    </div>
+  );
+
+  const pad = isMobile ? "0 24px 60px" : "0 40px 80px";
+  const bgStyle = config.bgImageUrl
+    ? `linear-gradient(rgba(${theme.dark?"15,15,26":"245,240,232"},0.88),rgba(${theme.dark?"15,15,26":"245,240,232"},0.95)) center/cover, url(${config.bgImageUrl}) center/cover`
+    : theme.bg;
+
+  return (
+    <div style={{ minHeight:"100%", background:bgStyle, display:"flex", flexDirection:"column", alignItems:"center", fontFamily:"'Lato',sans-serif", overflowY:"auto" }}>
+
+      {/* ── Header ── */}
+      <div style={{ width:"100%", maxWidth:640, padding:isMobile?"40px 24px 0":"64px 40px 0", opacity:anim?1:0, transform:anim?"translateY(0)":"translateY(18px)", transition:"opacity .7s ease, transform .7s ease" }}>
+
+        {config.logoUrl
+          ? <div style={{ marginBottom:28, textAlign:"center" }}>
+              <img src={config.logoUrl} alt="Abide logo" style={{ maxHeight:90, maxWidth:260, objectFit:"contain" }} />
+            </div>
+          : <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:isMobile?38:52, fontWeight:300, color:theme.text, letterSpacing:"0.08em", textAlign:"center", marginBottom:6 }}>{config.orgName}</div>
+        }
+
+        <div style={{ textAlign:"center", marginBottom:48 }}>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:15, fontStyle:"italic", color:theme.sub }}>{config.tagline}</div>
+          {config.taglineRef && <div style={{ fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:theme.accent, marginTop:4 }}>{config.taglineRef}</div>}
+        </div>
+
+        <div style={{ background:theme.card, border:`1px solid ${theme.border}`, borderRadius:12, padding:isMobile?"28px 24px":"40px 48px", marginBottom:32, backdropFilter:"blur(8px)" }}>
+          <div style={{ fontSize:11, letterSpacing:"0.22em", textTransform:"uppercase", color:theme.accent, marginBottom:12 }}>{config.welcomeTitle}</div>
+          <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, lineHeight:1.85, color:theme.text, margin:"0 0 16px" }}>{config.welcomeBody}</p>
+          {config.welcomeBody2 && <p style={{ fontSize:13, lineHeight:1.7, color:theme.sub, margin:0 }}>{config.welcomeBody2}</p>}
+        </div>
+
+        <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:36 }}>
+          <div style={{ flex:1, height:1, background:theme.border }}/>
+          <div style={{ fontSize:10, letterSpacing:"0.25em", textTransform:"uppercase", color:theme.sub }}>The Registration Form</div>
+          <div style={{ flex:1, height:1, background:theme.border }}/>
+        </div>
+      </div>
+
+      {/* ── Form / Success ── */}
+      {status !== "success" ? (
+        <div style={{ width:"100%", maxWidth:640, padding:pad, opacity:anim?1:0, transform:anim?"translateY(0)":"translateY(24px)", transition:"opacity .9s ease .15s, transform .9s ease .15s" }}>
+
+          <SectionHead num="1" title="Personal Connection"/>
+          <div style={{ marginBottom:16 }}><Label theme={theme}>Full Name</Label><FormInput theme={theme} placeholder="Enter your full name" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/></div>
+          <div style={{ marginBottom:16 }}><Label theme={theme}>Email Address</Label><FormInput theme={theme} type="email" placeholder="Enter your email address" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))}/></div>
+          <div style={{ marginBottom:36 }}>
+            <Label theme={theme}>Phone Number <span style={{ fontWeight:300, opacity:.6 }}>— Optional</span></Label>
+            <FormInput theme={theme} type="tel" placeholder="For a brief text reminder before we begin" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))}/>
+          </div>
+
+          <SectionHead num="2" title="Your Context"/>
+          <div style={{ marginBottom:16 }}>
+            <Label theme={theme}>City &amp; Country</Label>
+            <FormInput theme={theme} placeholder="e.g. Lagos, Nigeria" value={form.city} onChange={e=>setForm(f=>({...f,city:e.target.value}))}/>
+            <div style={{ fontSize:11, color:theme.sub, marginTop:5 }}>To help us honor your time zone and global perspective.</div>
+          </div>
+          <div style={{ marginBottom:36 }}>
+            <Label theme={theme}>Organization &amp; Job Title</Label>
+            <FormInput theme={theme} placeholder="e.g. CEO, Meridian Group" value={form.org} onChange={e=>setForm(f=>({...f,org:e.target.value}))}/>
+            <div style={{ fontSize:11, color:theme.sub, marginTop:5 }}>So we can know the weight of the leadership you carry.</div>
+          </div>
+
+          <SectionHead num="3" title="Your Intent"/>
+          <div style={{ marginBottom:36 }}>
+            <Label theme={theme}>What are you seeking for your soul in this season? <span style={{ fontWeight:300 }}>Select all that apply.</span></Label>
+            <div style={{ display:"flex", flexDirection:"column", gap:10, marginTop:10 }}>
+              {INTENTS.map((item,i)=><Checkbox key={i} checked={form.intents.includes(item)} onClick={()=>toggle(item)} label={item}/>)}
+            </div>
+          </div>
+
+          <SectionHead num="4" title="Consent"/>
+          <div style={{ marginBottom:40 }}>
+            <Checkbox checked={form.consent} onClick={()=>setForm(f=>({...f,consent:!f.consent}))} label="I would like to receive future communication and updates from the Abide team."/>
+          </div>
+
+          {errMsg && (
+            <div style={{ background:`${theme.accent}15`, border:`1px solid ${theme.accent}50`, borderRadius:8, padding:"12px 16px", marginBottom:20, fontSize:13, color:theme.text }}>{errMsg}</div>
+          )}
+
+          <button onClick={submit} disabled={status==="submitting"}
+            style={{ width:"100%", padding:"18px 32px", background:theme.accent, border:"none", borderRadius:8, cursor:status==="submitting"?"wait":"pointer", fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:600, letterSpacing:"0.08em", color:theme.dark?"#0F0F1A":"#FAF7F2", opacity:status==="submitting"?.7:1, display:"flex", alignItems:"center", justifyContent:"center", gap:10, transition:"opacity .2s, transform .15s" }}
+            onMouseEnter={e=>{ if(status!=="submitting"){e.currentTarget.style.opacity=".85";e.currentTarget.style.transform="translateY(-1px)";} }}
+            onMouseLeave={e=>{ e.currentTarget.style.opacity="1";e.currentTarget.style.transform="translateY(0)"; }}>
+            {status==="submitting" ? <><Spinner color={theme.dark?"#0F0F1A":"#FAF7F2"}/> Entering…</> : config.ctaLabel}
+          </button>
+
+          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginTop:14 }}>
+            <ZoomIcon size={15} color={theme.accent}/>
+            <span style={{ fontSize:11, color:theme.sub }}>Your information is kept private and treated with the utmost care.</span>
+          </div>
+        </div>
+      ) : (
+        <div style={{ width:"100%", maxWidth:640, padding:pad, textAlign:"center", animation:"fadeUp .6s ease both" }}>
+          <div style={{ width:56, height:56, borderRadius:"50%", border:`1.5px solid ${theme.accent}`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 28px" }}>
+            <svg width="24" height="20" viewBox="0 0 24 20"><path d="M2 10L9 17L22 3" stroke={theme.accent} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:34, fontWeight:300, color:theme.text, marginBottom:12, letterSpacing:"0.04em" }}>Welcome in.</div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, fontStyle:"italic", color:theme.sub, lineHeight:1.8, marginBottom:8 }}>
+            "Come to me, all you who are weary and burdened,<br/>and I will give you rest."
+          </div>
+          <div style={{ fontSize:11, letterSpacing:"0.2em", color:theme.accent, marginBottom:32 }}>Matthew 11:28</div>
+          <div style={{ display:"inline-flex", alignItems:"center", gap:10, background:`${theme.accent}12`, border:`1px solid ${theme.accent}40`, borderRadius:10, padding:"14px 22px" }}>
+            <ZoomIcon size={20} color={theme.accent}/>
+            <span style={{ fontSize:13, color:theme.text, fontFamily:"'Lato',sans-serif" }}>Check your email — your Zoom link is on its way.</span>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Builder panel ────────────────────────────────────────────── */
+function BuilderPanel({ config, setConfig }) {
+  const [tab, setTab] = useState("content");
+  const logoRef = useRef();
+  const bgRef   = useRef();
+  const set     = (k,v) => setConfig(c=>({...c,[k]:v}));
+  const handleFile = (e, key) => {
+    const f = e.target.files[0]; if(!f) return;
+    const r = new FileReader(); r.onload = ev => set(key, ev.target.result); r.readAsDataURL(f);
+  };
+
+  const tabs = [
+    { id:"content",     label:"Content" },
+    { id:"colors",      label:"Colors"  },
+    { id:"media",       label:"Media"   },
+    { id:"integration", label:"⚡ Zoom" },
+  ];
+
+  const ST = t => <div style={{ fontSize:11, letterSpacing:"0.15em", textTransform:"uppercase", color:"#9A8C7E", marginBottom:10, marginTop:18, fontFamily:"'Lato',sans-serif" }}>{t}</div>;
+
+  return (
+    <div style={{ width:330, minWidth:310, background:"#FDFAF6", borderRight:"1.5px solid #E8E0D5", display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"'Lato',sans-serif" }}>
+      <div style={{ padding:"20px 22px 0", borderBottom:"1px solid #E8E0D5" }}>
+        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:600, color:"#1A0A0E", marginBottom:4 }}>Abide Builder</div>
+        <div style={{ fontSize:11, color:"#9A8C7E", marginBottom:14 }}>Customize your registration form</div>
+        <div style={{ display:"flex" }}>
+          {tabs.map(t=>(
+            <button key={t.id} onClick={()=>setTab(t.id)} style={{ flex:1, padding:"8px 4px", fontSize:10, letterSpacing:"0.06em", textTransform:"uppercase", border:"none", background:"none", cursor:"pointer", color:tab===t.id?"#C9973A":"#9A8C7E", borderBottom:tab===t.id?"2px solid #C9973A":"2px solid transparent", fontWeight:tab===t.id?700:400, transition:"all .18s" }}>{t.label}</button>
+          ))}
+        </div>
+      </div>
+
+      <div style={{ flex:1, overflowY:"auto", padding:"4px 22px 24px" }}>
+
+        {/* Content */}
+        {tab==="content" && (<>
+          {ST("Organization")}
+          <BuilderInput label="Name"               value={config.orgName}       onChange={v=>set("orgName",v)}/>
+          <BuilderInput label="Tagline / Scripture" value={config.tagline}      onChange={v=>set("tagline",v)}/>
+          <BuilderInput label="Reference"           value={config.taglineRef}   onChange={v=>set("taglineRef",v)} placeholder="e.g. John 15:4"/>
+          {ST("Welcome Section")}
+          <BuilderInput label="Welcome Title"       value={config.welcomeTitle} onChange={v=>set("welcomeTitle",v)}/>
+          <BuilderTextarea label="Welcome Body"     value={config.welcomeBody}  onChange={v=>set("welcomeBody",v)} rows={5}/>
+          <BuilderTextarea label="Sub-text"         value={config.welcomeBody2} onChange={v=>set("welcomeBody2",v)} rows={2}/>
+          {ST("Button")}
+          <BuilderInput label="CTA Label"           value={config.ctaLabel}     onChange={v=>set("ctaLabel",v)}/>
+        </>)}
+
+        {/* Colors */}
+        {tab==="colors" && (<>
+          {ST("Color Themes")}
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+            {PRESETS.map((p,i)=>(
+              <div key={i} onClick={()=>set("preset",i)} style={{ padding:"12px 14px", borderRadius:8, cursor:"pointer", background:p.dark?"#1A1A2E":"#fff", border:`2px solid ${config.preset===i?p.accent:"#E0D8CE"}`, transition:"border-color .18s" }}>
+                <div style={{ display:"flex", gap:5, marginBottom:6 }}>
+                  <div style={{ width:16, height:16, borderRadius:3, background:p.bg, border:"1px solid #ccc" }}/>
+                  <div style={{ width:16, height:16, borderRadius:3, background:p.accent }}/>
+                  <div style={{ width:16, height:16, borderRadius:3, background:p.text }}/>
+                </div>
+                <div style={{ fontSize:11, color:p.dark?"#C9B89A":"#4A3A2A", fontWeight:config.preset===i?700:400 }}>{p.name}</div>
+              </div>
+            ))}
+          </div>
+        </>)}
+
+        {/* Media */}
+        {tab==="media" && (<>
+          {ST("Organization Logo")}
+          <div onClick={()=>logoRef.current.click()}
+            style={{ border:"2px dashed #D4C9B8", borderRadius:10, padding:"20px 16px", textAlign:"center", cursor:"pointer", background:"#FAF7F2", marginBottom:10 }}
+            onMouseEnter={e=>e.currentTarget.style.borderColor="#C9973A"}
+            onMouseLeave={e=>e.currentTarget.style.borderColor="#D4C9B8"}>
+            {config.logoUrl
+              ? <img src={config.logoUrl} alt="logo" style={{ maxHeight:64, maxWidth:"100%", objectFit:"contain" }}/>
+              : <div style={{ color:"#9A8C7E", fontSize:13 }}>+ Upload Logo<br/><span style={{ fontSize:11 }}>PNG · JPG · SVG</span></div>}
+          </div>
+          <input ref={logoRef} type="file" accept="image/*" style={{ display:"none" }} onChange={e=>handleFile(e,"logoUrl")}/>
+          {config.logoUrl && (
+            <button onClick={()=>set("logoUrl","")} style={{ background:"none", border:"1px solid #DDD5C8", borderRadius:6, padding:"6px 14px", fontSize:12, cursor:"pointer", color:"#6B1A2A", marginBottom:14 }}>Remove Logo</button>
+          )}
+
+          {ST("Background Image")}
+          <div onClick={()=>bgRef.current.click()}
+            style={{ border:"2px dashed #D4C9B8", borderRadius:10, overflow:"hidden", cursor:"pointer", marginBottom:10, minHeight:80, background:config.bgImageUrl?`url(${config.bgImageUrl}) center/cover`:"#FAF7F2", display:"flex", alignItems:"center", justifyContent:"center" }}
+            onMouseEnter={e=>e.currentTarget.style.borderColor="#C9973A"}
+            onMouseLeave={e=>e.currentTarget.style.borderColor="#D4C9B8"}>
+            {config.bgImageUrl
+              ? <div style={{ width:"100%", height:80, background:"rgba(0,0,0,.35)", display:"flex", alignItems:"center", justifyContent:"center" }}><span style={{ color:"#fff", fontSize:12 }}>Click to change</span></div>
+              : <div style={{ color:"#9A8C7E", fontSize:13, textAlign:"center", padding:16 }}>+ Upload Background<br/><span style={{ fontSize:11 }}>Landscape images work best</span></div>}
+          </div>
+          <input ref={bgRef} type="file" accept="image/*" style={{ display:"none" }} onChange={e=>handleFile(e,"bgImageUrl")}/>
+          {config.bgImageUrl && (
+            <button onClick={()=>set("bgImageUrl","")} style={{ background:"none", border:"1px solid #DDD5C8", borderRadius:6, padding:"6px 14px", fontSize:12, cursor:"pointer", color:"#6B1A2A" }}>Remove Background</button>
+          )}
+        </>)}
+
+        {/* Integration */}
+        {tab==="integration" && (<>
+          {ST("Zoom Meeting ID")}
+          <BuilderInput label="Paste your Zoom Meeting ID" value={config.zoomMeetingId} onChange={v=>set("zoomMeetingId",v)} placeholder="e.g. 123 456 7890"/>
+          <div style={{ fontSize:11, color:"#9A8C7E", marginTop:-8, marginBottom:16 }}>
+            Shown in the confirmation message so attendees can join.
+          </div>
+
+          <div style={{ background:"#F5F0E8", borderRadius:10, padding:16, fontSize:12, color:"#4A3A2A", lineHeight:1.85 }}>
+            <div style={{ fontWeight:700, color:"#C9973A", marginBottom:6 }}>Where to find your Meeting ID</div>
+            <ol style={{ margin:"0 0 10px 16px", padding:0 }}>
+              <li>Open <strong>Zoom</strong> → Meetings</li>
+              <li>Click the meeting you're hosting</li>
+              <li>Copy the <strong>Meeting ID</strong> shown at the top</li>
+            </ol>
+            <div style={{ background:"#FFF8F0", border:"1px solid #F0C080", borderRadius:8, padding:"10px 12px", fontSize:11, color:"#7A4A10" }}>
+              💡 Make sure <em>Registration → Required</em> is enabled on the Zoom meeting so attendees receive a personal join link by email.
+            </div>
+          </div>
+        </>)}
+      </div>
+
+      <div style={{ padding:"13px 22px", borderTop:"1px solid #E8E0D5", fontSize:11, color:"#B0A090", textAlign:"center" }}>
+        Changes reflect live in the preview →
+      </div>
+    </div>
+  );
+}
+
+/* ── Root ─────────────────────────────────────────────────────── */
+function App() {
+  const [config, setConfig]       = useState(DEFAULT);
+  const [mobileTab, setMobileTab] = useState("preview");
+  const isMobile = window.innerWidth < 768;
+
+  if (isMobile) {
+    return (
+      <div style={{ fontFamily:"'Lato',sans-serif", background:"#FAF7F2", minHeight:"100vh" }}>
+        <div style={{ background:"#1A0A0E", padding:"12px 20px", display:"flex" }}>
+          {["preview","builder"].map(v=>(
+            <button key={v} onClick={()=>setMobileTab(v)} style={{ flex:1, padding:8, fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", border:"none", background:"none", cursor:"pointer", color:mobileTab===v?"#C9973A":"#7A6A5A", borderBottom:mobileTab===v?"2px solid #C9973A":"2px solid transparent" }}>{v}</button>
+          ))}
+        </div>
+        <div style={{ display:mobileTab==="builder"?"block":"none" }}><BuilderPanel config={config} setConfig={setConfig}/></div>
+        <div style={{ display:mobileTab==="preview"?"block":"none" }}><RegistrationPage config={config} isMobile={true}/></div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ display:"flex", height:"100vh", overflow:"hidden" }}>
+      <BuilderPanel config={config} setConfig={setConfig}/>
+      <div style={{ flex:1, overflowY:"auto", background:PRESETS[config.preset].bg }}>
+        <RegistrationPage config={config} isMobile={false}/>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
 </html>
