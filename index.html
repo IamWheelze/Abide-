@@ -35,17 +35,21 @@ const PRESETS = [
 ];
 
 const DEFAULT = {
-  orgName:      "Abide",
-  tagline:      "Abide in me, and I in you.",
-  taglineRef:   "John 15:4",
-  welcomeTitle: "Welcome",
-  welcomeBody:  "We are honored to invite you into this intentional private space for senior executive Christian leaders. In a world that demands constant excellence and often causes you to compartmentalize your belief in God and your faith, Abide is a dedicated harbor for your soul, bridging the gap between professional leadership, spiritual depth, and true rest.",
-  welcomeBody2: "Please share a few details as you enter this space.",
-  ctaLabel:     "Enter the Space",
-  logoUrl:      "",
-  bgImageUrl:   "https://i.imgur.com/R4rxBb2.jpeg",
-  preset:       1,
-  zoomMeetingId:"",
+  orgName:       "Abide",
+  tagline:       "Abide in me, and I in you.",
+  taglineRef:    "John 15:4",
+  welcomeTitle:  "Welcome",
+  welcomeBody:   "We are honored to invite you into this intentional private space for senior executive Christian leaders. In a world that demands constant excellence and often causes you to compartmentalize your belief in God and your faith, Abide is a dedicated harbor for your soul, bridging the gap between professional leadership, spiritual depth, and true rest.",
+  welcomeBody2:  "Please share a few details as you enter this space.",
+  ctaLabel:      "Enter the Space",
+  logoUrl:       "",
+  bgImageUrl:    "https://i.imgur.com/R4rxBb2.jpeg",
+  preset:        1,
+  zoomMeetingId: "",
+  eventTitle:    "",
+  eventDate:     "",
+  eventTime:     "",
+  eventDuration: 1,
 };
 
 const INTENTS = [
@@ -99,6 +103,52 @@ const ZoomIcon = ({ size=18, color="#2D8CFF" }) => (
     <path d="M16 10.5l4-2.5v8l-4-2.5v-3z" fill={color}/>
   </svg>
 );
+
+/* ── Calendar helpers ─────────────────────────────────────────── */
+function buildCalendarData(config) {
+  if (!config.eventDate || !config.eventTime) return null;
+  const title = config.eventTitle || config.orgName || "Abide";
+  const [year, month, day] = config.eventDate.split("-").map(Number);
+  const [hour, min]        = config.eventTime.split(":").map(Number);
+  const duration           = parseFloat(config.eventDuration) || 1;
+  const start = new Date(year, month - 1, day, hour, min);
+  const end   = new Date(start.getTime() + duration * 60 * 60 * 1000);
+  const pad   = n => String(n).padStart(2, "0");
+  const fmt   = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
+  const iso   = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
+  return { title, start, end, fmt, iso };
+}
+
+function googleCalUrl(config) {
+  const d = buildCalendarData(config); if (!d) return null;
+  const p = new URLSearchParams({ action:"TEMPLATE", text:d.title, dates:`${d.fmt(d.start)}/${d.fmt(d.end)}` });
+  return `https://calendar.google.com/calendar/render?${p}`;
+}
+
+function outlookCalUrl(config) {
+  const d = buildCalendarData(config); if (!d) return null;
+  const p = new URLSearchParams({ subject:d.title, startdt:d.iso(d.start), enddt:d.iso(d.end) });
+  return `https://outlook.live.com/calendar/0/deeplink/compose?${p}`;
+}
+
+function downloadIcal(config) {
+  const d = buildCalendarData(config); if (!d) return;
+  const uid = `abide-${Date.now()}@abide`;
+  const ics = [
+    "BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Abide//Abide//EN",
+    "BEGIN:VEVENT",
+    `UID:${uid}`,
+    `DTSTART:${d.fmt(d.start)}`,
+    `DTEND:${d.fmt(d.end)}`,
+    `SUMMARY:${d.title}`,
+    "END:VEVENT","END:VCALENDAR"
+  ].join("\r\n");
+  const blob = new Blob([ics], { type:"text/calendar" });
+  const url  = URL.createObjectURL(blob);
+  const a    = Object.assign(document.createElement("a"), { href:url, download:`${d.title.replace(/\s+/g,"-")}.ics` });
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 /* ── Registration page ────────────────────────────────────────── */
 function RegistrationPage({ config, isMobile }) {
@@ -236,10 +286,59 @@ function RegistrationPage({ config, isMobile }) {
             "Come to me, all you who are weary and burdened,<br/>and I will give you rest."
           </div>
           <div style={{ fontSize:11, letterSpacing:"0.2em", color:theme.accent, marginBottom:32 }}>Matthew 11:28</div>
-          <div style={{ display:"inline-flex", alignItems:"center", gap:10, background:`${theme.accent}12`, border:`1px solid ${theme.accent}40`, borderRadius:10, padding:"14px 22px" }}>
+          <div style={{ display:"inline-flex", alignItems:"center", gap:10, background:`${theme.accent}12`, border:`1px solid ${theme.accent}40`, borderRadius:10, padding:"14px 22px", marginBottom: buildCalendarData(config) ? 28 : 0 }}>
             <ZoomIcon size={20} color={theme.accent}/>
             <span style={{ fontSize:13, color:theme.text, fontFamily:"'Lato',sans-serif" }}>Check your email — your Zoom link is on its way.</span>
           </div>
+
+          {buildCalendarData(config) && (
+            <div>
+              <div style={{ fontSize:10, letterSpacing:"0.22em", textTransform:"uppercase", color:theme.sub, marginBottom:14 }}>Add to your calendar</div>
+              <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
+                {/* Google Calendar */}
+                <a href={googleCalUrl(config)} target="_blank" rel="noopener noreferrer"
+                  style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 18px", borderRadius:8, border:`1px solid ${theme.border}`, background:`${theme.accent}0D`, color:theme.text, textDecoration:"none", fontSize:13, fontFamily:"'Lato',sans-serif", transition:"background .18s" }}
+                  onMouseEnter={e=>e.currentTarget.style.background=`${theme.accent}20`}
+                  onMouseLeave={e=>e.currentTarget.style.background=`${theme.accent}0D`}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="4" width="18" height="17" rx="2" stroke={theme.accent} strokeWidth="1.8"/>
+                    <path d="M3 9h18" stroke={theme.accent} strokeWidth="1.8"/>
+                    <path d="M8 2v4M16 2v4" stroke={theme.accent} strokeWidth="1.8" strokeLinecap="round"/>
+                    <circle cx="12" cy="15" r="2" fill={theme.accent}/>
+                  </svg>
+                  Google Calendar
+                </a>
+
+                {/* Outlook */}
+                <a href={outlookCalUrl(config)} target="_blank" rel="noopener noreferrer"
+                  style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 18px", borderRadius:8, border:`1px solid ${theme.border}`, background:`${theme.accent}0D`, color:theme.text, textDecoration:"none", fontSize:13, fontFamily:"'Lato',sans-serif", transition:"background .18s" }}
+                  onMouseEnter={e=>e.currentTarget.style.background=`${theme.accent}20`}
+                  onMouseLeave={e=>e.currentTarget.style.background=`${theme.accent}0D`}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="4" width="18" height="17" rx="2" stroke={theme.accent} strokeWidth="1.8"/>
+                    <path d="M3 9h18" stroke={theme.accent} strokeWidth="1.8"/>
+                    <path d="M8 2v4M16 2v4" stroke={theme.accent} strokeWidth="1.8" strokeLinecap="round"/>
+                    <path d="M8 14h8M8 17h5" stroke={theme.accent} strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                  Outlook
+                </a>
+
+                {/* Apple / iCal */}
+                <button onClick={()=>downloadIcal(config)}
+                  style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 18px", borderRadius:8, border:`1px solid ${theme.border}`, background:`${theme.accent}0D`, color:theme.text, fontSize:13, fontFamily:"'Lato',sans-serif", cursor:"pointer", transition:"background .18s" }}
+                  onMouseEnter={e=>e.currentTarget.style.background=`${theme.accent}20`}
+                  onMouseLeave={e=>e.currentTarget.style.background=`${theme.accent}0D`}>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                    <rect x="3" y="4" width="18" height="17" rx="2" stroke={theme.accent} strokeWidth="1.8"/>
+                    <path d="M3 9h18" stroke={theme.accent} strokeWidth="1.8"/>
+                    <path d="M8 2v4M16 2v4" stroke={theme.accent} strokeWidth="1.8" strokeLinecap="round"/>
+                    <path d="M12 13v4M10 15h4" stroke={theme.accent} strokeWidth="1.5" strokeLinecap="round"/>
+                  </svg>
+                  Apple Calendar
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -350,7 +449,7 @@ function BuilderPanel({ config, setConfig }) {
             Shown in the confirmation message so attendees can join.
           </div>
 
-          <div style={{ background:"#F5F0E8", borderRadius:10, padding:16, fontSize:12, color:"#4A3A2A", lineHeight:1.85 }}>
+          <div style={{ background:"#F5F0E8", borderRadius:10, padding:16, fontSize:12, color:"#4A3A2A", lineHeight:1.85, marginBottom:6 }}>
             <div style={{ fontWeight:700, color:"#C9973A", marginBottom:6 }}>Where to find your Meeting ID</div>
             <ol style={{ margin:"0 0 10px 16px", padding:0 }}>
               <li>Open <strong>Zoom</strong> → Meetings</li>
@@ -361,6 +460,39 @@ function BuilderPanel({ config, setConfig }) {
               💡 Make sure <em>Registration → Required</em> is enabled on the Zoom meeting so attendees receive a personal join link by email.
             </div>
           </div>
+
+          {ST("Calendar (Add to Calendar)")}
+          <div style={{ fontSize:11, color:"#9A8C7E", marginBottom:12 }}>
+            Set the event date &amp; time so registrants can add it to their calendar right after signing up.
+          </div>
+          <BuilderInput label="Event Title" value={config.eventTitle} onChange={v=>set("eventTitle",v)} placeholder={config.orgName || "Abide"}/>
+          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
+            <div style={{ marginBottom:13 }}>
+              <div style={{ fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:"#7A6A5A", marginBottom:5, fontFamily:"'Lato',sans-serif" }}>Date</div>
+              <input type="date" value={config.eventDate} onChange={e=>set("eventDate",e.target.value)}
+                style={{ width:"100%", padding:"9px 10px", border:"1px solid #DDD5C8", borderRadius:6, fontSize:13, fontFamily:"'Lato',sans-serif", outline:"none", background:"#FDFAF6", color:"#1A0A0E" }}/>
+            </div>
+            <div style={{ marginBottom:13 }}>
+              <div style={{ fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:"#7A6A5A", marginBottom:5, fontFamily:"'Lato',sans-serif" }}>Time</div>
+              <input type="time" value={config.eventTime} onChange={e=>set("eventTime",e.target.value)}
+                style={{ width:"100%", padding:"9px 10px", border:"1px solid #DDD5C8", borderRadius:6, fontSize:13, fontFamily:"'Lato',sans-serif", outline:"none", background:"#FDFAF6", color:"#1A0A0E" }}/>
+            </div>
+          </div>
+          <div style={{ marginBottom:13 }}>
+            <div style={{ fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:"#7A6A5A", marginBottom:5, fontFamily:"'Lato',sans-serif" }}>Duration (hours)</div>
+            <input type="number" min="0.5" max="8" step="0.5" value={config.eventDuration} onChange={e=>set("eventDuration",e.target.value)}
+              style={{ width:"100%", padding:"9px 12px", border:"1px solid #DDD5C8", borderRadius:6, fontSize:13, fontFamily:"'Lato',sans-serif", outline:"none", background:"#FDFAF6", color:"#1A0A0E" }}/>
+          </div>
+          {(!config.eventDate || !config.eventTime) && (
+            <div style={{ background:"#F5F0E8", borderRadius:8, padding:"10px 12px", fontSize:11, color:"#9A8C7E" }}>
+              Fill in date &amp; time above to enable the "Add to Calendar" buttons on the success screen.
+            </div>
+          )}
+          {(config.eventDate && config.eventTime) && (
+            <div style={{ background:"#F0FBF0", border:"1px solid #A8D5A8", borderRadius:8, padding:"10px 12px", fontSize:11, color:"#3A6A3A" }}>
+              ✓ Calendar buttons will appear after registration.
+            </div>
+          )}
         </>)}
       </div>
 
