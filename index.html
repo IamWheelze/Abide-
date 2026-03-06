@@ -10,6 +10,7 @@
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body, #root { height: 100%; }
@@ -50,6 +51,9 @@ const DEFAULT = {
   eventDate:     "",
   eventTime:     "",
   eventDuration: 1,
+  ejsPublicKey:  "",
+  ejsServiceId:  "",
+  ejsTemplateId: "",
 };
 
 const INTENTS = [
@@ -165,7 +169,39 @@ function RegistrationPage({ config, isMobile }) {
   const submit = async () => {
     if (!form.name||!form.email){ setErrMsg("Please enter your name and email to continue."); return; }
     setErrMsg(""); setStatus("submitting");
-    await new Promise(r=>setTimeout(r,900));
+
+    if (config.ejsPublicKey && config.ejsServiceId && config.ejsTemplateId) {
+      try {
+        const calData   = buildCalendarData(config);
+        const zoomLink  = config.zoomMeetingId ? `https://zoom.us/j/${config.zoomMeetingId.replace(/\s+/g,"")}` : "";
+        const gCalUrl   = calData ? googleCalUrl(config) : "";
+        const pad       = n => String(n).padStart(2,"0");
+        const dateLabel = calData
+          ? `${calData.start.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"})} at ${pad(calData.start.getHours())}:${pad(calData.start.getMinutes())}`
+          : "";
+
+        await emailjs.send(
+          config.ejsServiceId,
+          config.ejsTemplateId,
+          {
+            to_name:        form.name,
+            to_email:       form.email,
+            from_name:      config.orgName || "Abide",
+            event_title:    config.eventTitle || config.orgName || "Abide",
+            event_date_time:dateLabel,
+            zoom_link:      zoomLink,
+            google_cal_url: gCalUrl,
+            org_tagline:    config.tagline,
+          },
+          config.ejsPublicKey
+        );
+      } catch(err) {
+        console.warn("EmailJS error:", err);
+      }
+    } else {
+      await new Promise(r=>setTimeout(r,900));
+    }
+
     setStatus("success");
   };
 
@@ -361,6 +397,7 @@ function BuilderPanel({ config, setConfig }) {
     { id:"colors",      label:"Colors"  },
     { id:"media",       label:"Media"   },
     { id:"integration", label:"⚡ Zoom" },
+    { id:"email",       label:"✉ Email" },
   ];
 
   const ST = t => <div style={{ fontSize:11, letterSpacing:"0.15em", textTransform:"uppercase", color:"#9A8C7E", marginBottom:10, marginTop:18, fontFamily:"'Lato',sans-serif" }}>{t}</div>;
@@ -493,6 +530,49 @@ function BuilderPanel({ config, setConfig }) {
               ✓ Calendar buttons will appear after registration.
             </div>
           )}
+        </>)}
+
+        {/* Email */}
+        {tab==="email" && (<>
+          {ST("Auto-send Confirmation Email")}
+          <div style={{ fontSize:11, color:"#9A8C7E", marginBottom:14, lineHeight:1.7 }}>
+            When someone registers, automatically send them a confirmation email with their Zoom link and an "Add to Calendar" button. Powered by <strong>EmailJS</strong> (free — 200 emails/month).
+          </div>
+
+          <div style={{ background:"#F5F0E8", borderRadius:10, padding:14, fontSize:12, color:"#4A3A2A", lineHeight:1.85, marginBottom:16 }}>
+            <div style={{ fontWeight:700, color:"#C9973A", marginBottom:6 }}>Setup (one time)</div>
+            <ol style={{ margin:"0 0 0 16px", padding:0 }}>
+              <li>Go to <strong>emailjs.com</strong> and create a free account</li>
+              <li>Add an <strong>Email Service</strong> (Gmail, Outlook, etc.) — copy the <em>Service ID</em></li>
+              <li>Create an <strong>Email Template</strong> — copy the <em>Template ID</em></li>
+              <li>Go to <strong>Account → API Keys</strong> — copy your <em>Public Key</em></li>
+              <li>Paste all three below</li>
+            </ol>
+          </div>
+
+          <BuilderInput label="Public Key"  value={config.ejsPublicKey}  onChange={v=>set("ejsPublicKey",v)}  placeholder="e.g. user_XXXXXXXXXX"/>
+          <BuilderInput label="Service ID"  value={config.ejsServiceId}  onChange={v=>set("ejsServiceId",v)}  placeholder="e.g. service_xxxxxxx"/>
+          <BuilderInput label="Template ID" value={config.ejsTemplateId} onChange={v=>set("ejsTemplateId",v)} placeholder="e.g. template_xxxxxxx"/>
+
+          {(config.ejsPublicKey && config.ejsServiceId && config.ejsTemplateId) ? (
+            <div style={{ background:"#F0FBF0", border:"1px solid #A8D5A8", borderRadius:8, padding:"10px 12px", fontSize:11, color:"#3A6A3A", marginBottom:14 }}>
+              ✓ Emails will be sent automatically on registration.
+            </div>
+          ) : (
+            <div style={{ background:"#F5F0E8", borderRadius:8, padding:"10px 12px", fontSize:11, color:"#9A8C7E", marginBottom:14 }}>
+              Fill in all three fields above to enable automatic emails.
+            </div>
+          )}
+
+          <div style={{ background:"#FFF8F0", border:"1px solid #F0C080", borderRadius:10, padding:14, fontSize:11, color:"#7A4A10", lineHeight:1.8 }}>
+            <div style={{ fontWeight:700, marginBottom:6 }}>Template variables to use in EmailJS</div>
+            <div>Your EmailJS template can include these variables:</div>
+            <div style={{ fontFamily:"monospace", background:"#FFF0E0", borderRadius:6, padding:"8px 10px", marginTop:8, fontSize:11, lineHeight:2 }}>
+              {["to_name","to_email","from_name","event_title","event_date_time","zoom_link","google_cal_url","org_tagline"].map(v=>(
+                <div key={v}><span style={{ color:"#C9700A" }}>{`{{${v}}}`}</span></div>
+              ))}
+            </div>
+          </div>
         </>)}
       </div>
 
