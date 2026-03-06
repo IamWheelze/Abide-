@@ -124,14 +124,20 @@ function buildCalendarData(config) {
 }
 
 function googleCalUrl(config) {
-  const d = buildCalendarData(config); if (!d) return null;
-  const p = new URLSearchParams({ action:"TEMPLATE", text:d.title, dates:`${d.fmt(d.start)}/${d.fmt(d.end)}` });
+  const title = config.eventTitle || config.orgName || "Abide";
+  const d = buildCalendarData(config);
+  const p = d
+    ? new URLSearchParams({ action:"TEMPLATE", text:title, dates:`${d.fmt(d.start)}/${d.fmt(d.end)}` })
+    : new URLSearchParams({ action:"TEMPLATE", text:title });
   return `https://calendar.google.com/calendar/render?${p}`;
 }
 
 function outlookCalUrl(config) {
-  const d = buildCalendarData(config); if (!d) return null;
-  const p = new URLSearchParams({ subject:d.title, startdt:d.iso(d.start), enddt:d.iso(d.end) });
+  const title = config.eventTitle || config.orgName || "Abide";
+  const d = buildCalendarData(config);
+  const p = d
+    ? new URLSearchParams({ subject:title, startdt:d.iso(d.start), enddt:d.iso(d.end) })
+    : new URLSearchParams({ subject:title });
   return `https://outlook.live.com/calendar/0/deeplink/compose?${p}`;
 }
 
@@ -332,39 +338,39 @@ function RegistrationPage({ config, isMobile }) {
             </p>
           </div>
 
-          {buildCalendarData(config) && (
-            <div>
-              <div style={{ fontSize:10, letterSpacing:"0.22em", textTransform:"uppercase", color:theme.sub, marginBottom:14 }}>Add to your calendar</div>
-              <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
-                {/* Google Calendar */}
-                <a href={googleCalUrl(config)} target="_blank" rel="noopener noreferrer"
-                  style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 18px", borderRadius:8, border:`1px solid ${theme.border}`, background:`${theme.accent}0D`, color:theme.text, textDecoration:"none", fontSize:13, fontFamily:"'Lato',sans-serif", transition:"background .18s" }}
-                  onMouseEnter={e=>e.currentTarget.style.background=`${theme.accent}20`}
-                  onMouseLeave={e=>e.currentTarget.style.background=`${theme.accent}0D`}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="4" width="18" height="17" rx="2" stroke={theme.accent} strokeWidth="1.8"/>
-                    <path d="M3 9h18" stroke={theme.accent} strokeWidth="1.8"/>
-                    <path d="M8 2v4M16 2v4" stroke={theme.accent} strokeWidth="1.8" strokeLinecap="round"/>
-                    <circle cx="12" cy="15" r="2" fill={theme.accent}/>
-                  </svg>
-                  Google Calendar
-                </a>
+          <div style={{ marginTop:28 }}>
+            <div style={{ fontSize:10, letterSpacing:"0.22em", textTransform:"uppercase", color:theme.sub, marginBottom:14 }}>Add to your calendar</div>
+            <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
+              {/* Google Calendar */}
+              <a href={googleCalUrl(config)} target="_blank" rel="noopener noreferrer"
+                style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 18px", borderRadius:8, border:`1px solid ${theme.border}`, background:`${theme.accent}0D`, color:theme.text, textDecoration:"none", fontSize:13, fontFamily:"'Lato',sans-serif", transition:"background .18s" }}
+                onMouseEnter={e=>e.currentTarget.style.background=`${theme.accent}20`}
+                onMouseLeave={e=>e.currentTarget.style.background=`${theme.accent}0D`}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <rect x="3" y="4" width="18" height="17" rx="2" stroke={theme.accent} strokeWidth="1.8"/>
+                  <path d="M3 9h18" stroke={theme.accent} strokeWidth="1.8"/>
+                  <path d="M8 2v4M16 2v4" stroke={theme.accent} strokeWidth="1.8" strokeLinecap="round"/>
+                  <circle cx="12" cy="15" r="2" fill={theme.accent}/>
+                </svg>
+                Google Calendar
+              </a>
 
-                {/* Outlook */}
-                <a href={outlookCalUrl(config)} target="_blank" rel="noopener noreferrer"
-                  style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 18px", borderRadius:8, border:`1px solid ${theme.border}`, background:`${theme.accent}0D`, color:theme.text, textDecoration:"none", fontSize:13, fontFamily:"'Lato',sans-serif", transition:"background .18s" }}
-                  onMouseEnter={e=>e.currentTarget.style.background=`${theme.accent}20`}
-                  onMouseLeave={e=>e.currentTarget.style.background=`${theme.accent}0D`}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="4" width="18" height="17" rx="2" stroke={theme.accent} strokeWidth="1.8"/>
-                    <path d="M3 9h18" stroke={theme.accent} strokeWidth="1.8"/>
-                    <path d="M8 2v4M16 2v4" stroke={theme.accent} strokeWidth="1.8" strokeLinecap="round"/>
-                    <path d="M8 14h8M8 17h5" stroke={theme.accent} strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  Outlook
-                </a>
+              {/* Outlook */}
+              <a href={outlookCalUrl(config)} target="_blank" rel="noopener noreferrer"
+                style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 18px", borderRadius:8, border:`1px solid ${theme.border}`, background:`${theme.accent}0D`, color:theme.text, textDecoration:"none", fontSize:13, fontFamily:"'Lato',sans-serif", transition:"background .18s" }}
+                onMouseEnter={e=>e.currentTarget.style.background=`${theme.accent}20`}
+                onMouseLeave={e=>e.currentTarget.style.background=`${theme.accent}0D`}>
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                  <rect x="3" y="4" width="18" height="17" rx="2" stroke={theme.accent} strokeWidth="1.8"/>
+                  <path d="M3 9h18" stroke={theme.accent} strokeWidth="1.8"/>
+                  <path d="M8 2v4M16 2v4" stroke={theme.accent} strokeWidth="1.8" strokeLinecap="round"/>
+                  <path d="M8 14h8M8 17h5" stroke={theme.accent} strokeWidth="1.5" strokeLinecap="round"/>
+                </svg>
+                Outlook
+              </a>
 
-                {/* Apple / iCal */}
+              {/* Apple / iCal — only if date is set */}
+              {buildCalendarData(config) && (
                 <button onClick={()=>downloadIcal(config)}
                   style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 18px", borderRadius:8, border:`1px solid ${theme.border}`, background:`${theme.accent}0D`, color:theme.text, fontSize:13, fontFamily:"'Lato',sans-serif", cursor:"pointer", transition:"background .18s" }}
                   onMouseEnter={e=>e.currentTarget.style.background=`${theme.accent}20`}
@@ -377,9 +383,9 @@ function RegistrationPage({ config, isMobile }) {
                   </svg>
                   Apple Calendar
                 </button>
-              </div>
+              )}
             </div>
-          )}
+          </div>
         </div>
       )}
     </div>
