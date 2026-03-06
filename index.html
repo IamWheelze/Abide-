@@ -322,9 +322,14 @@ function RegistrationPage({ config, isMobile }) {
             "Come to me, all you who are weary and burdened,<br/>and I will give you rest."
           </div>
           <div style={{ fontSize:11, letterSpacing:"0.2em", color:theme.accent, marginBottom:32 }}>Matthew 11:28</div>
-          <div style={{ display:"inline-flex", alignItems:"center", gap:10, background:`${theme.accent}12`, border:`1px solid ${theme.accent}40`, borderRadius:10, padding:"14px 22px", marginBottom: buildCalendarData(config) ? 28 : 0 }}>
-            <ZoomIcon size={20} color={theme.accent}/>
-            <span style={{ fontSize:13, color:theme.text, fontFamily:"'Lato',sans-serif" }}>Check your email — your Zoom link is on its way.</span>
+          <div style={{ background:`${theme.accent}0D`, border:`1px solid ${theme.accent}30`, borderRadius:12, padding:"20px 28px", marginBottom:20, maxWidth:420, margin:"0 auto 20px" }}>
+            <div style={{ fontSize:11, letterSpacing:"0.18em", textTransform:"uppercase", color:theme.accent, marginBottom:8 }}>What happens next</div>
+            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:theme.text, lineHeight:1.8, margin:"0 0 10px" }}>
+              We have received your details and are grateful you've taken this step.
+            </p>
+            <p style={{ fontSize:12, color:theme.sub, lineHeight:1.7, margin:0 }}>
+              Once we confirm your place, your personal Zoom link will be sent directly to <strong style={{ color:theme.text }}>{form.email}</strong>. Please watch your inbox.
+            </p>
           </div>
 
           {buildCalendarData(config) && (
@@ -534,9 +539,9 @@ function BuilderPanel({ config, setConfig }) {
 
         {/* Email */}
         {tab==="email" && (<>
-          {ST("Auto-send Confirmation Email")}
+          {ST("Auto-send Receipt Email")}
           <div style={{ fontSize:11, color:"#9A8C7E", marginBottom:14, lineHeight:1.7 }}>
-            When someone registers, automatically send them a confirmation email with their Zoom link and an "Add to Calendar" button. Powered by <strong>EmailJS</strong> (free — 200 emails/month).
+            Immediately send a <strong>"we received you"</strong> email when someone registers. Your Zoom link is <em>not</em> included here — you'll send that separately once you've confirmed their place. Powered by <strong>EmailJS</strong> (free — 200 emails/month).
           </div>
 
           <div style={{ background:"#F5F0E8", borderRadius:10, padding:14, fontSize:12, color:"#4A3A2A", lineHeight:1.85, marginBottom:16 }}>
@@ -565,12 +570,25 @@ function BuilderPanel({ config, setConfig }) {
           )}
 
           <div style={{ background:"#FFF8F0", border:"1px solid #F0C080", borderRadius:10, padding:14, fontSize:11, color:"#7A4A10", lineHeight:1.8 }}>
-            <div style={{ fontWeight:700, marginBottom:6 }}>Template variables to use in EmailJS</div>
-            <div>Your EmailJS template can include these variables:</div>
-            <div style={{ fontFamily:"monospace", background:"#FFF0E0", borderRadius:6, padding:"8px 10px", marginTop:8, fontSize:11, lineHeight:2 }}>
-              {["to_name","to_email","from_name","event_title","event_date_time","zoom_link","google_cal_url","org_tagline"].map(v=>(
-                <div key={v}><span style={{ color:"#C9700A" }}>{`{{${v}}}`}</span></div>
+            <div style={{ fontWeight:700, marginBottom:4 }}>Variables for your receipt email template</div>
+            <div style={{ marginBottom:8, color:"#9A6A10" }}>This is a <em>"we received your details"</em> email — keep it warm but don't include the Zoom link yet. Send that in a separate follow-up once you've confirmed them.</div>
+            <div style={{ fontFamily:"monospace", background:"#FFF0E0", borderRadius:6, padding:"8px 10px", fontSize:11, lineHeight:2 }}>
+              {[
+                ["to_name",        "Registrant's name"],
+                ["to_email",       "Their email address"],
+                ["from_name",      "Your org name"],
+                ["event_title",    "Event title"],
+                ["event_date_time","Formatted date & time"],
+                ["org_tagline",    "Your tagline / scripture"],
+              ].map(([v, hint])=>(
+                <div key={v} style={{ display:"flex", gap:8, alignItems:"baseline" }}>
+                  <span style={{ color:"#C9700A", minWidth:140 }}>{`{{${v}}}`}</span>
+                  <span style={{ color:"#9A7A50", fontSize:10 }}>{hint}</span>
+                </div>
               ))}
+            </div>
+            <div style={{ marginTop:10, paddingTop:8, borderTop:"1px solid #F0C080", color:"#9A6A10" }}>
+              💡 <strong>To send the Zoom link</strong> later, create a second EmailJS template with <span style={{ fontFamily:"monospace", background:"#FFF0E0", padding:"1px 5px", borderRadius:3 }}>{`{{zoom_link}}`}</span> and send it manually to confirmed attendees.
             </div>
           </div>
         </>)}
