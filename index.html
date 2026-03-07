@@ -91,30 +91,39 @@ function calData() {
   return { start, end, fmt, iso };
 }
 
+function zoomDetails() {
+  const parts = [C.zoomJoinUrl];
+  if (C.zoomPasscode) parts.push(`Passcode: ${C.zoomPasscode}`);
+  return parts.join("\n");
+}
+
 function gCalUrl() {
   const d = calData();
-  const p = d
-    ? new URLSearchParams({ action:"TEMPLATE", text:C.eventTitle||C.orgName, dates:`${d.fmt(d.start)}/${d.fmt(d.end)}` })
-    : new URLSearchParams({ action:"TEMPLATE", text:C.eventTitle||C.orgName });
-  return `https://calendar.google.com/calendar/render?${p}`;
+  const params = { action:"TEMPLATE", text:C.eventTitle||C.orgName };
+  if (d) params.dates = `${d.fmt(d.start)}/${d.fmt(d.end)}`;
+  if (C.zoomJoinUrl) { params.location = C.zoomJoinUrl; params.details = zoomDetails(); }
+  return `https://calendar.google.com/calendar/render?${new URLSearchParams(params)}`;
 }
 
 function outlookUrl() {
   const d = calData();
-  const p = d
-    ? new URLSearchParams({ subject:C.eventTitle||C.orgName, startdt:d.iso(d.start), enddt:d.iso(d.end) })
-    : new URLSearchParams({ subject:C.eventTitle||C.orgName });
-  return `https://outlook.live.com/calendar/0/deeplink/compose?${p}`;
+  const params = { subject:C.eventTitle||C.orgName };
+  if (d) { params.startdt = d.iso(d.start); params.enddt = d.iso(d.end); }
+  if (C.zoomJoinUrl) { params.location = C.zoomJoinUrl; params.body = zoomDetails(); }
+  return `https://outlook.live.com/calendar/0/deeplink/compose?${new URLSearchParams(params)}`;
 }
 
 function downloadIcal() {
   const d = calData(); if (!d) return;
   const title = C.eventTitle || C.orgName;
-  const ics = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Abide//EN","BEGIN:VEVENT",
+  const lines = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Abide//EN","BEGIN:VEVENT",
     `UID:abide-${Date.now()}@abide`,`DTSTART:${d.fmt(d.start)}`,`DTEND:${d.fmt(d.end)}`,
-    `SUMMARY:${title}`,"END:VEVENT","END:VCALENDAR"].join("\r\n");
+    `SUMMARY:${title}`];
+  if (C.zoomJoinUrl) lines.push(`LOCATION:${C.zoomJoinUrl}`);
+  if (C.zoomJoinUrl) lines.push(`DESCRIPTION:${zoomDetails().replace(/\n/g,"\\n")}`);
+  lines.push("END:VEVENT","END:VCALENDAR");
   const a = Object.assign(document.createElement("a"), {
-    href: URL.createObjectURL(new Blob([ics],{type:"text/calendar"})),
+    href: URL.createObjectURL(new Blob([lines.join("\r\n")],{type:"text/calendar"})),
     download: `${title.replace(/\s+/g,"-")}.ics`,
   });
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -301,7 +310,7 @@ function App() {
             <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
               <CalBtn href={gCalUrl()}><CalSvg d="M8 15h8"/> Google Calendar</CalBtn>
               <CalBtn href={outlookUrl()}><CalSvg d="M8 14h8M8 17h5"/> Outlook</CalBtn>
-              {calData() && <CalBtn onClick={downloadIcal}><CalSvg d="M12 13v4M10 15h4"/> Apple Calendar</CalBtn>}
+              <CalBtn onClick={downloadIcal}><CalSvg d="M12 13v4M10 15h4"/> Apple Calendar</CalBtn>
             </div>
           </div>
         </div>
