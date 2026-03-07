@@ -15,27 +15,29 @@
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     html, body, #root { height: 100%; }
     body { font-family: 'Lato', sans-serif; }
-    @keyframes spin    { to { transform: rotate(360deg); } }
-    @keyframes fadeUp  { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-    @keyframes fadeIn  { from { opacity:0; transform:translateY(18px); } to { opacity:1; transform:translateY(0); } }
-    ::-webkit-scrollbar { width: 5px; } ::-webkit-scrollbar-track { background: transparent; } ::-webkit-scrollbar-thumb { background: rgba(0,0,0,.15); border-radius: 8px; }
+    @keyframes spin   { to { transform: rotate(360deg); } }
+    @keyframes fadeUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
+    ::-webkit-scrollbar { width:5px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:rgba(0,0,0,.15); border-radius:8px; }
   </style>
 </head>
 <body>
 <div id="root"></div>
 
 <script type="text/babel">
-const { useState, useRef, useEffect } = React;
+const { useState, useEffect } = React;
 
-/* ── Palette presets ──────────────────────────────────────────── */
-const PRESETS = [
-  { name:"Midnight Gold",    accent:"#C9973A", card:"rgba(255,255,255,0.07)", bg:"#0F0F1A", text:"#F5EFE6", sub:"#A89880", border:"rgba(201,151,58,0.25)",  dark:true  },
-  { name:"Ivory & Burgundy", accent:"#6B1A2A", card:"rgba(107,26,42,0.06)",  bg:"#FAF7F2", text:"#1A0A0E", sub:"#7A5C60", border:"rgba(107,26,42,0.2)",    dark:false },
-  { name:"Slate & Olive",    accent:"#8B9E6A", card:"rgba(255,255,255,0.06)",bg:"#111C25", text:"#EDF0E8", sub:"#8A9A8A", border:"rgba(139,158,106,0.25)", dark:true  },
-  { name:"Parchment & Navy", accent:"#1B3A5C", card:"rgba(27,58,92,0.07)",   bg:"#F0EAD8", text:"#0D1B2A", sub:"#5A6A7A", border:"rgba(27,58,92,0.2)",     dark:false },
-];
+/* ── Parchment & Navy theme ───────────────────────────────────── */
+const T = {
+  accent: "#1B3A5C",
+  card:   "rgba(27,58,92,0.07)",
+  bg:     "#F0EAD8",
+  text:   "#0D1B2A",
+  sub:    "#5A6A7A",
+  border: "rgba(27,58,92,0.2)",
+};
 
-const DEFAULT = {
+/* ── Config — edit these values ──────────────────────────────── */
+const C = {
   orgName:       "Abide",
   tagline:       "Abide in me, and I in you.",
   taglineRef:    "John 15:4",
@@ -43,14 +45,18 @@ const DEFAULT = {
   welcomeBody:   "We are honored to invite you into this intentional private space for senior executive Christian leaders. In a world that demands constant excellence and often causes you to compartmentalize your belief in God and your faith, Abide is a dedicated harbor for your soul, bridging the gap between professional leadership, spiritual depth, and true rest.",
   welcomeBody2:  "Please share a few details as you enter this space.",
   ctaLabel:      "Enter the Space",
-  logoUrl:       "",
   bgImageUrl:    "https://i.imgur.com/R4rxBb2.jpeg",
-  preset:        1,
+
+  /* Zoom meeting ID — paste the numeric ID from your Zoom meeting */
   zoomMeetingId: "",
-  eventTitle:    "",
-  eventDate:     "",
-  eventTime:     "",
-  eventDuration: 1,
+
+  /* Event date/time for "Add to Calendar" — optional */
+  eventTitle:    "Abide",
+  eventDate:     "",    /* YYYY-MM-DD */
+  eventTime:     "",    /* HH:MM 24h  */
+  eventDuration: 1,     /* hours      */
+
+  /* EmailJS — optional confirmation email sent from the browser */
   ejsPublicKey:  "",
   ejsServiceId:  "",
   ejsTemplateId: "",
@@ -64,234 +70,220 @@ const INTENTS = [
 ];
 
 /* ── Atoms ────────────────────────────────────────────────────── */
-const Label = ({ children, theme }) => (
-  <div style={{ fontSize:10, letterSpacing:"0.18em", textTransform:"uppercase", fontFamily:"'Lato',sans-serif", fontWeight:700, color:theme.sub, marginBottom:6 }}>{children}</div>
+const Label = ({ children }) => (
+  <div style={{ fontSize:10, letterSpacing:"0.18em", textTransform:"uppercase", fontWeight:700, color:T.sub, marginBottom:6 }}>{children}</div>
 );
 
-function FormInput({ theme, style, ...props }) {
+function FormInput({ style, ...props }) {
   const [focus, setFocus] = useState(false);
   return (
     <input onFocus={()=>setFocus(true)} onBlur={()=>setFocus(false)}
-      style={{ width:"100%", padding:"11px 14px", background:"transparent", border:`1px solid ${focus?theme.accent:theme.border}`, borderRadius:6, color:theme.text, fontFamily:"'Lato',sans-serif", fontSize:14, outline:"none", transition:"border-color .2s", ...style }}
+      style={{ width:"100%", padding:"11px 14px", background:"transparent", border:`1px solid ${focus?T.accent:T.border}`, borderRadius:6, color:T.text, fontFamily:"'Lato',sans-serif", fontSize:14, outline:"none", transition:"border-color .2s", ...style }}
       {...props} />
   );
 }
 
-const BuilderInput = ({ label, value, onChange, ...rest }) => (
-  <div style={{ marginBottom:13 }}>
-    {label && <div style={{ fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:"#7A6A5A", marginBottom:5, fontFamily:"'Lato',sans-serif" }}>{label}</div>}
-    <input value={value} onChange={e=>onChange(e.target.value)}
-      style={{ width:"100%", padding:"9px 12px", border:"1px solid #DDD5C8", borderRadius:6, fontSize:13, fontFamily:"'Lato',sans-serif", outline:"none", background:"#FDFAF6", color:"#1A0A0E" }}
-      {...rest} />
-  </div>
-);
-
-const BuilderTextarea = ({ label, value, onChange, rows=3 }) => (
-  <div style={{ marginBottom:13 }}>
-    {label && <div style={{ fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:"#7A6A5A", marginBottom:5, fontFamily:"'Lato',sans-serif" }}>{label}</div>}
-    <textarea value={value} rows={rows} onChange={e=>onChange(e.target.value)}
-      style={{ width:"100%", padding:"9px 12px", border:"1px solid #DDD5C8", borderRadius:6, fontSize:13, fontFamily:"'Lato',sans-serif", outline:"none", background:"#FDFAF6", color:"#1A0A0E", resize:"vertical" }} />
-  </div>
-);
-
-const Spinner = ({ color="#fff" }) => (
-  <svg width="18" height="18" viewBox="0 0 18 18" style={{ animation:"spin .8s linear infinite", display:"block" }}>
-    <circle cx="9" cy="9" r="7" fill="none" stroke={color} strokeWidth="2" strokeDasharray="30" strokeDashoffset="10" strokeLinecap="round"/>
-  </svg>
-);
-
-const ZoomIcon = ({ size=18, color="#2D8CFF" }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none">
-    <rect width="24" height="24" rx="5" fill={color} opacity="0.15"/>
-    <path d="M4 8.5C4 7.67 4.67 7 5.5 7h9C15.33 7 16 7.67 16 8.5v7c0 .83-.67 1.5-1.5 1.5h-9C4.67 17 4 16.33 4 15.5v-7z" fill={color}/>
-    <path d="M16 10.5l4-2.5v8l-4-2.5v-3z" fill={color}/>
+const Spinner = () => (
+  <svg width="18" height="18" viewBox="0 0 18 18" style={{ animation:"spin .8s linear infinite" }}>
+    <circle cx="9" cy="9" r="7" fill="none" stroke="#FAF7F2" strokeWidth="2" strokeDasharray="30" strokeDashoffset="10" strokeLinecap="round"/>
   </svg>
 );
 
 /* ── Calendar helpers ─────────────────────────────────────────── */
-function buildCalendarData(config) {
-  if (!config.eventDate || !config.eventTime) return null;
-  const title = config.eventTitle || config.orgName || "Abide";
-  const [year, month, day] = config.eventDate.split("-").map(Number);
-  const [hour, min]        = config.eventTime.split(":").map(Number);
-  const duration           = parseFloat(config.eventDuration) || 1;
-  const start = new Date(year, month - 1, day, hour, min);
-  const end   = new Date(start.getTime() + duration * 60 * 60 * 1000);
-  const pad   = n => String(n).padStart(2, "0");
-  const fmt   = d => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}T${pad(d.getHours())}${pad(d.getMinutes())}00`;
-  const iso   = d => `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:00`;
-  return { title, start, end, fmt, iso };
+function calData() {
+  if (!C.eventDate || !C.eventTime) return null;
+  const [y,mo,d] = C.eventDate.split("-").map(Number);
+  const [h,mi]   = C.eventTime.split(":").map(Number);
+  const start    = new Date(y, mo-1, d, h, mi);
+  const end      = new Date(start.getTime() + (parseFloat(C.eventDuration)||1)*3600000);
+  const pad      = n => String(n).padStart(2,"0");
+  const fmt      = x => `${x.getFullYear()}${pad(x.getMonth()+1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00`;
+  const iso      = x => `${x.getFullYear()}-${pad(x.getMonth()+1)}-${pad(x.getDate())}T${pad(x.getHours())}:${pad(x.getMinutes())}:00`;
+  return { start, end, fmt, iso };
 }
 
-function googleCalUrl(config) {
-  const title = config.eventTitle || config.orgName || "Abide";
-  const d = buildCalendarData(config);
+function gCalUrl() {
+  const d = calData();
   const p = d
-    ? new URLSearchParams({ action:"TEMPLATE", text:title, dates:`${d.fmt(d.start)}/${d.fmt(d.end)}` })
-    : new URLSearchParams({ action:"TEMPLATE", text:title });
+    ? new URLSearchParams({ action:"TEMPLATE", text:C.eventTitle||C.orgName, dates:`${d.fmt(d.start)}/${d.fmt(d.end)}` })
+    : new URLSearchParams({ action:"TEMPLATE", text:C.eventTitle||C.orgName });
   return `https://calendar.google.com/calendar/render?${p}`;
 }
 
-function outlookCalUrl(config) {
-  const title = config.eventTitle || config.orgName || "Abide";
-  const d = buildCalendarData(config);
+function outlookUrl() {
+  const d = calData();
   const p = d
-    ? new URLSearchParams({ subject:title, startdt:d.iso(d.start), enddt:d.iso(d.end) })
-    : new URLSearchParams({ subject:title });
+    ? new URLSearchParams({ subject:C.eventTitle||C.orgName, startdt:d.iso(d.start), enddt:d.iso(d.end) })
+    : new URLSearchParams({ subject:C.eventTitle||C.orgName });
   return `https://outlook.live.com/calendar/0/deeplink/compose?${p}`;
 }
 
-function downloadIcal(config) {
-  const d = buildCalendarData(config); if (!d) return;
-  const uid = `abide-${Date.now()}@abide`;
-  const ics = [
-    "BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Abide//Abide//EN",
-    "BEGIN:VEVENT",
-    `UID:${uid}`,
-    `DTSTART:${d.fmt(d.start)}`,
-    `DTEND:${d.fmt(d.end)}`,
-    `SUMMARY:${d.title}`,
-    "END:VEVENT","END:VCALENDAR"
-  ].join("\r\n");
-  const blob = new Blob([ics], { type:"text/calendar" });
-  const url  = URL.createObjectURL(blob);
-  const a    = Object.assign(document.createElement("a"), { href:url, download:`${d.title.replace(/\s+/g,"-")}.ics` });
+function downloadIcal() {
+  const d = calData(); if (!d) return;
+  const title = C.eventTitle || C.orgName;
+  const ics = ["BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Abide//EN","BEGIN:VEVENT",
+    `UID:abide-${Date.now()}@abide`,`DTSTART:${d.fmt(d.start)}`,`DTEND:${d.fmt(d.end)}`,
+    `SUMMARY:${title}`,"END:VEVENT","END:VCALENDAR"].join("\r\n");
+  const a = Object.assign(document.createElement("a"), {
+    href: URL.createObjectURL(new Blob([ics],{type:"text/calendar"})),
+    download: `${title.replace(/\s+/g,"-")}.ics`,
+  });
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
-  URL.revokeObjectURL(url);
 }
 
-/* ── Registration page ────────────────────────────────────────── */
-function RegistrationPage({ config, isMobile }) {
-  const theme = PRESETS[config.preset];
+/* ── App ──────────────────────────────────────────────────────── */
+function App() {
+  const isMobile = window.innerWidth < 768;
   const [form, setForm]     = useState({ name:"", email:"", phone:"", city:"", org:"", intents:[], consent:false });
   const [status, setStatus] = useState("idle");
   const [errMsg, setErrMsg] = useState("");
+  const [joinUrl, setJoinUrl] = useState("");
   const [anim, setAnim]     = useState(false);
 
   useEffect(()=>{ const t=setTimeout(()=>setAnim(true),80); return ()=>clearTimeout(t); },[]);
 
-  const toggle = item => setForm(f=>({ ...f, intents: f.intents.includes(item) ? f.intents.filter(i=>i!==item) : [...f.intents,item] }));
+  const toggle = item => setForm(f=>({
+    ...f, intents: f.intents.includes(item) ? f.intents.filter(i=>i!==item) : [...f.intents,item]
+  }));
 
   const submit = async () => {
-    if (!form.name||!form.email){ setErrMsg("Please enter your name and email to continue."); return; }
+    if (!form.name || !form.email) { setErrMsg("Please enter your name and email to continue."); return; }
     setErrMsg(""); setStatus("submitting");
 
-    if (config.ejsPublicKey && config.ejsServiceId && config.ejsTemplateId) {
-      try {
-        const calData   = buildCalendarData(config);
-        const zoomLink  = config.zoomMeetingId ? `https://zoom.us/j/${config.zoomMeetingId.replace(/\s+/g,"")}` : "";
-        const gCalUrl   = calData ? googleCalUrl(config) : "";
-        const pad       = n => String(n).padStart(2,"0");
-        const dateLabel = calData
-          ? `${calData.start.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"})} at ${pad(calData.start.getHours())}:${pad(calData.start.getMinutes())}`
-          : "";
+    try {
+      const res  = await fetch("/api/register", {
+        method: "POST",
+        headers: { "Content-Type":"application/json" },
+        body: JSON.stringify({
+          full_name:       form.name,
+          email:           form.email,
+          phone:           form.phone,
+          city_country:    form.city,
+          org_title:       form.org,
+          intents:         form.intents.join("; "),
+          consent:         form.consent ? "Yes" : "No",
+          zoom_meeting_id: C.zoomMeetingId,
+        }),
+      });
+      const data = await res.json();
 
-        await emailjs.send(
-          config.ejsServiceId,
-          config.ejsTemplateId,
-          {
-            to_name:        form.name,
-            to_email:       form.email,
-            from_name:      config.orgName || "Abide",
-            event_title:    config.eventTitle || config.orgName || "Abide",
-            event_date_time:dateLabel,
-            zoom_link:      zoomLink,
-            google_cal_url: gCalUrl,
-            org_tagline:    config.tagline,
-          },
-          config.ejsPublicKey
-        );
-      } catch(err) {
-        console.warn("EmailJS error:", err);
+      if (!res.ok) { setErrMsg(data.error || "Something went wrong. Please try again."); setStatus("error"); return; }
+
+      if (data.join_url) setJoinUrl(data.join_url);
+
+      /* Optional browser-sent confirmation email */
+      if (C.ejsPublicKey && C.ejsServiceId && C.ejsTemplateId) {
+        try {
+          const d   = calData();
+          const pad = n => String(n).padStart(2,"0");
+          await emailjs.send(C.ejsServiceId, C.ejsTemplateId, {
+            to_name:         form.name,
+            to_email:        form.email,
+            from_name:       C.orgName,
+            event_title:     C.eventTitle || C.orgName,
+            event_date_time: d ? `${d.start.toLocaleDateString("en-US",{weekday:"long",year:"numeric",month:"long",day:"numeric"})} at ${pad(d.start.getHours())}:${pad(d.start.getMinutes())}` : "",
+            zoom_link:       data.join_url || "",
+            org_tagline:     C.tagline,
+          }, C.ejsPublicKey);
+        } catch(e) { console.warn("EmailJS:", e); }
       }
-    } else {
-      await new Promise(r=>setTimeout(r,900));
-    }
 
-    setStatus("success");
+      setStatus("success");
+    } catch(e) {
+      setErrMsg("Could not reach the server. Please check your connection and try again.");
+      setStatus("error");
+    }
   };
 
   const SectionHead = ({ num, title }) => (
     <div style={{ display:"flex", alignItems:"center", gap:14, marginBottom:22, marginTop:8 }}>
-      <div style={{ width:28, height:28, borderRadius:"50%", border:`1px solid ${theme.accent}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontFamily:"'Lato',sans-serif", color:theme.accent, flexShrink:0 }}>{num}</div>
-      <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:500, color:theme.text, letterSpacing:"0.04em" }}>{title}</div>
-      <div style={{ flex:1, height:1, background:theme.border }}/>
+      <div style={{ width:28, height:28, borderRadius:"50%", border:`1px solid ${T.accent}`, display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, color:T.accent, flexShrink:0 }}>{num}</div>
+      <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:500, color:T.text, letterSpacing:"0.04em" }}>{title}</div>
+      <div style={{ flex:1, height:1, background:T.border }}/>
     </div>
   );
 
   const Checkbox = ({ checked, onClick, label }) => (
-    <div onClick={onClick} style={{ display:"flex", alignItems:"flex-start", gap:12, cursor:"pointer", padding:"14px 16px", borderRadius:8, background:checked?`${theme.accent}18`:"transparent", border:`1px solid ${checked?theme.accent:theme.border}`, transition:"all .18s" }}>
-      <div style={{ width:18, height:18, borderRadius:4, border:`1.5px solid ${checked?theme.accent:theme.sub}`, background:checked?theme.accent:"transparent", flexShrink:0, marginTop:1, display:"flex", alignItems:"center", justifyContent:"center", transition:"all .18s" }}>
-        {checked && <svg width="10" height="8" viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1" stroke={theme.dark?"#0F0F1A":"#fff"} strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
+    <div onClick={onClick} style={{ display:"flex", alignItems:"flex-start", gap:12, cursor:"pointer", padding:"14px 16px", borderRadius:8, background:checked?`${T.accent}18`:"transparent", border:`1px solid ${checked?T.accent:T.border}`, transition:"all .18s" }}>
+      <div style={{ width:18, height:18, borderRadius:4, border:`1.5px solid ${checked?T.accent:T.sub}`, background:checked?T.accent:"transparent", flexShrink:0, marginTop:1, display:"flex", alignItems:"center", justifyContent:"center", transition:"all .18s" }}>
+        {checked && <svg width="10" height="8" viewBox="0 0 10 8"><path d="M1 4L3.5 6.5L9 1" stroke="#FAF7F2" strokeWidth="1.8" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>}
       </div>
-      <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:theme.text, lineHeight:1.5 }}>{label}</span>
+      <span style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:T.text, lineHeight:1.5 }}>{label}</span>
     </div>
   );
 
+  const CalBtn = ({ href, onClick, children }) => {
+    const [hov, setHov] = useState(false);
+    const s = { display:"inline-flex", alignItems:"center", gap:8, padding:"11px 18px", borderRadius:8, border:`1px solid ${T.border}`, background:hov?`${T.accent}20`:`${T.accent}0D`, color:T.text, fontSize:13, fontFamily:"'Lato',sans-serif", textDecoration:"none", cursor:"pointer", transition:"background .18s" };
+    return href
+      ? <a href={href} target="_blank" rel="noopener noreferrer" style={s} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}>{children}</a>
+      : <button style={s} onClick={onClick} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}>{children}</button>;
+  };
+
+  const CalSvg = ({ d }) => (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+      <rect x="3" y="4" width="18" height="17" rx="2" stroke={T.accent} strokeWidth="1.8"/>
+      <path d="M3 9h18" stroke={T.accent} strokeWidth="1.8"/>
+      <path d="M8 2v4M16 2v4" stroke={T.accent} strokeWidth="1.8" strokeLinecap="round"/>
+      {d && <path d={d} stroke={T.accent} strokeWidth="1.5" strokeLinecap="round"/>}
+    </svg>
+  );
+
+  const overlay = "245,240,232";
+  const bg = C.bgImageUrl
+    ? `linear-gradient(rgba(${overlay},0.72),rgba(${overlay},0.82)),url(${C.bgImageUrl}) center/cover no-repeat`
+    : T.bg;
   const pad = isMobile ? "0 24px 60px" : "0 40px 80px";
-  const overlay = theme.dark ? "15,15,26" : "245,240,232";
-  const bgStyle = config.bgImageUrl
-    ? `linear-gradient(rgba(${overlay},0.72),rgba(${overlay},0.82)), url(${config.bgImageUrl}) center/cover no-repeat`
-    : theme.bg;
 
   return (
-    <div style={{ minHeight:"100%", background:bgStyle, display:"flex", flexDirection:"column", alignItems:"center", fontFamily:"'Lato',sans-serif", overflowY:"auto" }}>
+    <div style={{ minHeight:"100%", background:bg, display:"flex", flexDirection:"column", alignItems:"center", overflowY:"auto" }}>
 
-      {/* ── Header ── */}
+      {/* Header */}
       <div style={{ width:"100%", maxWidth:640, padding:isMobile?"40px 24px 0":"64px 40px 0", opacity:anim?1:0, transform:anim?"translateY(0)":"translateY(18px)", transition:"opacity .7s ease, transform .7s ease" }}>
-
-        {config.logoUrl
-          ? <div style={{ marginBottom:28, textAlign:"center" }}>
-              <img src={config.logoUrl} alt="Abide logo" style={{ maxHeight:90, maxWidth:260, objectFit:"contain" }} />
-            </div>
-          : <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:isMobile?38:52, fontWeight:300, color:theme.text, letterSpacing:"0.08em", textAlign:"center", marginBottom:6 }}>{config.orgName}</div>
-        }
-
+        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:isMobile?38:52, fontWeight:300, color:T.text, letterSpacing:"0.08em", textAlign:"center", marginBottom:6 }}>{C.orgName}</div>
         <div style={{ textAlign:"center", marginBottom:48 }}>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:15, fontStyle:"italic", color:theme.sub }}>{config.tagline}</div>
-          {config.taglineRef && <div style={{ fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:theme.accent, marginTop:4 }}>{config.taglineRef}</div>}
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:15, fontStyle:"italic", color:T.sub }}>{C.tagline}</div>
+          {C.taglineRef && <div style={{ fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:T.accent, marginTop:4 }}>{C.taglineRef}</div>}
         </div>
-
-        <div style={{ background:theme.card, border:`1px solid ${theme.border}`, borderRadius:12, padding:isMobile?"28px 24px":"40px 48px", marginBottom:32, backdropFilter:"blur(8px)" }}>
-          <div style={{ fontSize:11, letterSpacing:"0.22em", textTransform:"uppercase", color:theme.accent, marginBottom:12 }}>{config.welcomeTitle}</div>
-          <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, lineHeight:1.85, color:theme.text, margin:"0 0 16px" }}>{config.welcomeBody}</p>
-          {config.welcomeBody2 && <p style={{ fontSize:13, lineHeight:1.7, color:theme.sub, margin:0 }}>{config.welcomeBody2}</p>}
+        <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:12, padding:isMobile?"28px 24px":"40px 48px", marginBottom:32, backdropFilter:"blur(8px)" }}>
+          <div style={{ fontSize:11, letterSpacing:"0.22em", textTransform:"uppercase", color:T.accent, marginBottom:12 }}>{C.welcomeTitle}</div>
+          <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, lineHeight:1.85, color:T.text, margin:"0 0 16px" }}>{C.welcomeBody}</p>
+          {C.welcomeBody2 && <p style={{ fontSize:13, lineHeight:1.7, color:T.sub, margin:0 }}>{C.welcomeBody2}</p>}
         </div>
-
         <div style={{ display:"flex", alignItems:"center", gap:16, marginBottom:36 }}>
-          <div style={{ flex:1, height:1, background:theme.border }}/>
-          <div style={{ fontSize:10, letterSpacing:"0.25em", textTransform:"uppercase", color:theme.sub }}>The Registration Form</div>
-          <div style={{ flex:1, height:1, background:theme.border }}/>
+          <div style={{ flex:1, height:1, background:T.border }}/>
+          <div style={{ fontSize:10, letterSpacing:"0.25em", textTransform:"uppercase", color:T.sub }}>The Registration Form</div>
+          <div style={{ flex:1, height:1, background:T.border }}/>
         </div>
       </div>
 
-      {/* ── Form / Success ── */}
+      {/* Form */}
       {status !== "success" ? (
         <div style={{ width:"100%", maxWidth:640, padding:pad, opacity:anim?1:0, transform:anim?"translateY(0)":"translateY(24px)", transition:"opacity .9s ease .15s, transform .9s ease .15s" }}>
 
           <SectionHead num="1" title="Personal Connection"/>
-          <div style={{ marginBottom:16 }}><Label theme={theme}>Full Name</Label><FormInput theme={theme} placeholder="Enter your full name" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/></div>
-          <div style={{ marginBottom:16 }}><Label theme={theme}>Email Address</Label><FormInput theme={theme} type="email" placeholder="Enter your email address" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))}/></div>
+          <div style={{ marginBottom:16 }}><Label>Full Name</Label><FormInput placeholder="Enter your full name" value={form.name} onChange={e=>setForm(f=>({...f,name:e.target.value}))}/></div>
+          <div style={{ marginBottom:16 }}><Label>Email Address</Label><FormInput type="email" placeholder="Enter your email address" value={form.email} onChange={e=>setForm(f=>({...f,email:e.target.value}))}/></div>
           <div style={{ marginBottom:36 }}>
-            <Label theme={theme}>Phone Number <span style={{ fontWeight:300, opacity:.6 }}>— Optional</span></Label>
-            <FormInput theme={theme} type="tel" placeholder="For a brief text reminder before we begin" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))}/>
+            <Label>Phone Number <span style={{ fontWeight:300, opacity:.6 }}>— Optional</span></Label>
+            <FormInput type="tel" placeholder="For a brief text reminder before we begin" value={form.phone} onChange={e=>setForm(f=>({...f,phone:e.target.value}))}/>
           </div>
 
           <SectionHead num="2" title="Your Context"/>
           <div style={{ marginBottom:16 }}>
-            <Label theme={theme}>City &amp; Country</Label>
-            <FormInput theme={theme} placeholder="e.g. Lagos, Nigeria" value={form.city} onChange={e=>setForm(f=>({...f,city:e.target.value}))}/>
-            <div style={{ fontSize:11, color:theme.sub, marginTop:5 }}>To help us honor your time zone and global perspective.</div>
+            <Label>City &amp; Country</Label>
+            <FormInput placeholder="e.g. Lagos, Nigeria" value={form.city} onChange={e=>setForm(f=>({...f,city:e.target.value}))}/>
+            <div style={{ fontSize:11, color:T.sub, marginTop:5 }}>To help us honor your time zone and global perspective.</div>
           </div>
           <div style={{ marginBottom:36 }}>
-            <Label theme={theme}>Organization &amp; Job Title</Label>
-            <FormInput theme={theme} placeholder="e.g. CEO, Meridian Group" value={form.org} onChange={e=>setForm(f=>({...f,org:e.target.value}))}/>
-            <div style={{ fontSize:11, color:theme.sub, marginTop:5 }}>So we can know the weight of the leadership you carry.</div>
+            <Label>Organization &amp; Job Title</Label>
+            <FormInput placeholder="e.g. CEO, Meridian Group" value={form.org} onChange={e=>setForm(f=>({...f,org:e.target.value}))}/>
+            <div style={{ fontSize:11, color:T.sub, marginTop:5 }}>So we can know the weight of the leadership you carry.</div>
           </div>
 
           <SectionHead num="3" title="Your Intent"/>
           <div style={{ marginBottom:36 }}>
-            <Label theme={theme}>What are you seeking for your soul in this season? <span style={{ fontWeight:300 }}>Select all that apply.</span></Label>
+            <Label>What are you seeking for your soul in this season? <span style={{ fontWeight:300 }}>Select all that apply.</span></Label>
             <div style={{ display:"flex", flexDirection:"column", gap:10, marginTop:10 }}>
               {INTENTS.map((item,i)=><Checkbox key={i} checked={form.intents.includes(item)} onClick={()=>toggle(item)} label={item}/>)}
             </div>
@@ -303,336 +295,73 @@ function RegistrationPage({ config, isMobile }) {
           </div>
 
           {errMsg && (
-            <div style={{ background:`${theme.accent}15`, border:`1px solid ${theme.accent}50`, borderRadius:8, padding:"12px 16px", marginBottom:20, fontSize:13, color:theme.text }}>{errMsg}</div>
+            <div style={{ background:`${T.accent}15`, border:`1px solid ${T.accent}50`, borderRadius:8, padding:"12px 16px", marginBottom:20, fontSize:13, color:T.text }}>{errMsg}</div>
           )}
 
           <button onClick={submit} disabled={status==="submitting"}
-            style={{ width:"100%", padding:"18px 32px", background:theme.accent, border:"none", borderRadius:8, cursor:status==="submitting"?"wait":"pointer", fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:600, letterSpacing:"0.08em", color:theme.dark?"#0F0F1A":"#FAF7F2", opacity:status==="submitting"?.7:1, display:"flex", alignItems:"center", justifyContent:"center", gap:10, transition:"opacity .2s, transform .15s" }}
+            style={{ width:"100%", padding:"18px 32px", background:T.accent, border:"none", borderRadius:8, cursor:status==="submitting"?"wait":"pointer", fontFamily:"'Cormorant Garamond',serif", fontSize:18, fontWeight:600, letterSpacing:"0.08em", color:"#FAF7F2", opacity:status==="submitting"?.7:1, display:"flex", alignItems:"center", justifyContent:"center", gap:10, transition:"opacity .2s, transform .15s" }}
             onMouseEnter={e=>{ if(status!=="submitting"){e.currentTarget.style.opacity=".85";e.currentTarget.style.transform="translateY(-1px)";} }}
             onMouseLeave={e=>{ e.currentTarget.style.opacity="1";e.currentTarget.style.transform="translateY(0)"; }}>
-            {status==="submitting" ? <><Spinner color={theme.dark?"#0F0F1A":"#FAF7F2"}/> Entering…</> : config.ctaLabel}
+            {status==="submitting" ? <><Spinner/> Entering…</> : C.ctaLabel}
           </button>
 
-          <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:6, marginTop:14 }}>
-            <ZoomIcon size={15} color={theme.accent}/>
-            <span style={{ fontSize:11, color:theme.sub }}>Your information is kept private and treated with the utmost care.</span>
+          <div style={{ textAlign:"center", marginTop:14 }}>
+            <span style={{ fontSize:11, color:T.sub }}>Your information is kept private and treated with the utmost care.</span>
           </div>
         </div>
+
       ) : (
+        /* Success */
         <div style={{ width:"100%", maxWidth:640, padding:pad, textAlign:"center", animation:"fadeUp .6s ease both" }}>
-          <div style={{ width:56, height:56, borderRadius:"50%", border:`1.5px solid ${theme.accent}`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 28px" }}>
-            <svg width="24" height="20" viewBox="0 0 24 20"><path d="M2 10L9 17L22 3" stroke={theme.accent} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          <div style={{ width:56, height:56, borderRadius:"50%", border:`1.5px solid ${T.accent}`, display:"flex", alignItems:"center", justifyContent:"center", margin:"0 auto 28px" }}>
+            <svg width="24" height="20" viewBox="0 0 24 20"><path d="M2 10L9 17L22 3" stroke={T.accent} strokeWidth="2" fill="none" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:34, fontWeight:300, color:theme.text, marginBottom:12, letterSpacing:"0.04em" }}>Welcome in.</div>
-          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, fontStyle:"italic", color:theme.sub, lineHeight:1.8, marginBottom:8 }}>
+
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:34, fontWeight:300, color:T.text, marginBottom:12, letterSpacing:"0.04em" }}>Welcome in.</div>
+          <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, fontStyle:"italic", color:T.sub, lineHeight:1.8, marginBottom:8 }}>
             "Come to me, all you who are weary and burdened,<br/>and I will give you rest."
           </div>
-          <div style={{ fontSize:11, letterSpacing:"0.2em", color:theme.accent, marginBottom:32 }}>Matthew 11:28</div>
-          <div style={{ background:`${theme.accent}0D`, border:`1px solid ${theme.accent}30`, borderRadius:12, padding:"20px 28px", marginBottom:20, maxWidth:420, margin:"0 auto 20px" }}>
-            <div style={{ fontSize:11, letterSpacing:"0.18em", textTransform:"uppercase", color:theme.accent, marginBottom:8 }}>What happens next</div>
-            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:theme.text, lineHeight:1.8, margin:"0 0 10px" }}>
-              We have received your details and are grateful you've taken this step.
-            </p>
-            <p style={{ fontSize:12, color:theme.sub, lineHeight:1.7, margin:0 }}>
-              Once we confirm your place, your personal Zoom link will be sent directly to <strong style={{ color:theme.text }}>{form.email}</strong>. Please watch your inbox.
-            </p>
-          </div>
+          <div style={{ fontSize:11, letterSpacing:"0.2em", color:T.accent, marginBottom:32 }}>Matthew 11:28</div>
 
+          {joinUrl ? (
+            <div style={{ background:`${T.accent}0D`, border:`1px solid ${T.accent}30`, borderRadius:12, padding:"24px 28px", marginBottom:24 }}>
+              <div style={{ fontSize:11, letterSpacing:"0.18em", textTransform:"uppercase", color:T.accent, marginBottom:10 }}>Your Personal Zoom Link</div>
+              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:15, color:T.text, lineHeight:1.8, marginBottom:18 }}>
+                You're registered. Use the link below to join when the session begins.
+              </p>
+              <a href={joinUrl} target="_blank" rel="noopener noreferrer"
+                style={{ display:"inline-flex", alignItems:"center", gap:10, padding:"13px 22px", borderRadius:8, background:T.accent, color:"#FAF7F2", textDecoration:"none", fontSize:14, fontWeight:700, letterSpacing:"0.04em" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path d="M4 8.5C4 7.67 4.67 7 5.5 7h9c.83 0 1.5.67 1.5 1.5v7c0 .83-.67 1.5-1.5 1.5h-9C4.67 17 4 16.33 4 15.5v-7z" fill="#FAF7F2"/>
+                  <path d="M16 10.5l4-2.5v8l-4-2.5v-3z" fill="#FAF7F2"/>
+                </svg>
+                Join Zoom Meeting
+              </a>
+              <p style={{ fontSize:11, color:T.sub, marginTop:12 }}>This link is personal to you — please don't share it.</p>
+            </div>
+          ) : (
+            <div style={{ background:`${T.accent}0D`, border:`1px solid ${T.accent}30`, borderRadius:12, padding:"20px 28px", marginBottom:24 }}>
+              <div style={{ fontSize:11, letterSpacing:"0.18em", textTransform:"uppercase", color:T.accent, marginBottom:8 }}>What happens next</div>
+              <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:T.text, lineHeight:1.8, margin:"0 0 10px" }}>
+                We have received your details and are grateful you've taken this step.
+              </p>
+              <p style={{ fontSize:12, color:T.sub, lineHeight:1.7, margin:0 }}>
+                Once we confirm your place, your personal Zoom link will be sent to <strong style={{ color:T.text }}>{form.email}</strong>. Please watch your inbox.
+              </p>
+            </div>
+          )}
+
+          {/* Add to Calendar */}
           <div style={{ marginTop:28 }}>
-            <div style={{ fontSize:10, letterSpacing:"0.22em", textTransform:"uppercase", color:theme.sub, marginBottom:14 }}>Add to your calendar</div>
+            <div style={{ fontSize:10, letterSpacing:"0.22em", textTransform:"uppercase", color:T.sub, marginBottom:14 }}>Add to your calendar</div>
             <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
-              {/* Google Calendar */}
-              <a href={googleCalUrl(config)} target="_blank" rel="noopener noreferrer"
-                style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 18px", borderRadius:8, border:`1px solid ${theme.border}`, background:`${theme.accent}0D`, color:theme.text, textDecoration:"none", fontSize:13, fontFamily:"'Lato',sans-serif", transition:"background .18s" }}
-                onMouseEnter={e=>e.currentTarget.style.background=`${theme.accent}20`}
-                onMouseLeave={e=>e.currentTarget.style.background=`${theme.accent}0D`}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="4" width="18" height="17" rx="2" stroke={theme.accent} strokeWidth="1.8"/>
-                  <path d="M3 9h18" stroke={theme.accent} strokeWidth="1.8"/>
-                  <path d="M8 2v4M16 2v4" stroke={theme.accent} strokeWidth="1.8" strokeLinecap="round"/>
-                  <circle cx="12" cy="15" r="2" fill={theme.accent}/>
-                </svg>
-                Google Calendar
-              </a>
-
-              {/* Outlook */}
-              <a href={outlookCalUrl(config)} target="_blank" rel="noopener noreferrer"
-                style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 18px", borderRadius:8, border:`1px solid ${theme.border}`, background:`${theme.accent}0D`, color:theme.text, textDecoration:"none", fontSize:13, fontFamily:"'Lato',sans-serif", transition:"background .18s" }}
-                onMouseEnter={e=>e.currentTarget.style.background=`${theme.accent}20`}
-                onMouseLeave={e=>e.currentTarget.style.background=`${theme.accent}0D`}>
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                  <rect x="3" y="4" width="18" height="17" rx="2" stroke={theme.accent} strokeWidth="1.8"/>
-                  <path d="M3 9h18" stroke={theme.accent} strokeWidth="1.8"/>
-                  <path d="M8 2v4M16 2v4" stroke={theme.accent} strokeWidth="1.8" strokeLinecap="round"/>
-                  <path d="M8 14h8M8 17h5" stroke={theme.accent} strokeWidth="1.5" strokeLinecap="round"/>
-                </svg>
-                Outlook
-              </a>
-
-              {/* Apple / iCal — only if date is set */}
-              {buildCalendarData(config) && (
-                <button onClick={()=>downloadIcal(config)}
-                  style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"11px 18px", borderRadius:8, border:`1px solid ${theme.border}`, background:`${theme.accent}0D`, color:theme.text, fontSize:13, fontFamily:"'Lato',sans-serif", cursor:"pointer", transition:"background .18s" }}
-                  onMouseEnter={e=>e.currentTarget.style.background=`${theme.accent}20`}
-                  onMouseLeave={e=>e.currentTarget.style.background=`${theme.accent}0D`}>
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
-                    <rect x="3" y="4" width="18" height="17" rx="2" stroke={theme.accent} strokeWidth="1.8"/>
-                    <path d="M3 9h18" stroke={theme.accent} strokeWidth="1.8"/>
-                    <path d="M8 2v4M16 2v4" stroke={theme.accent} strokeWidth="1.8" strokeLinecap="round"/>
-                    <path d="M12 13v4M10 15h4" stroke={theme.accent} strokeWidth="1.5" strokeLinecap="round"/>
-                  </svg>
-                  Apple Calendar
-                </button>
-              )}
+              <CalBtn href={gCalUrl()}><CalSvg d="M8 15h8"/> Google Calendar</CalBtn>
+              <CalBtn href={outlookUrl()}><CalSvg d="M8 14h8M8 17h5"/> Outlook</CalBtn>
+              {calData() && <CalBtn onClick={downloadIcal}><CalSvg d="M12 13v4M10 15h4"/> Apple Calendar</CalBtn>}
             </div>
           </div>
         </div>
       )}
-    </div>
-  );
-}
-
-/* ── Builder panel ────────────────────────────────────────────── */
-function BuilderPanel({ config, setConfig }) {
-  const [tab, setTab] = useState("content");
-  const logoRef = useRef();
-  const bgRef   = useRef();
-  const set     = (k,v) => setConfig(c=>({...c,[k]:v}));
-  const handleFile = (e, key) => {
-    const f = e.target.files[0]; if(!f) return;
-    const r = new FileReader(); r.onload = ev => set(key, ev.target.result); r.readAsDataURL(f);
-  };
-
-  const tabs = [
-    { id:"content",     label:"Content" },
-    { id:"colors",      label:"Colors"  },
-    { id:"media",       label:"Media"   },
-    { id:"integration", label:"⚡ Zoom" },
-    { id:"email",       label:"✉ Email" },
-  ];
-
-  const ST = t => <div style={{ fontSize:11, letterSpacing:"0.15em", textTransform:"uppercase", color:"#9A8C7E", marginBottom:10, marginTop:18, fontFamily:"'Lato',sans-serif" }}>{t}</div>;
-
-  return (
-    <div style={{ width:330, minWidth:310, background:"#FDFAF6", borderRight:"1.5px solid #E8E0D5", display:"flex", flexDirection:"column", height:"100vh", overflow:"hidden", fontFamily:"'Lato',sans-serif" }}>
-      <div style={{ padding:"20px 22px 0", borderBottom:"1px solid #E8E0D5" }}>
-        <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:20, fontWeight:600, color:"#1A0A0E", marginBottom:4 }}>Abide Builder</div>
-        <div style={{ fontSize:11, color:"#9A8C7E", marginBottom:14 }}>Customize your registration form</div>
-        <div style={{ display:"flex" }}>
-          {tabs.map(t=>(
-            <button key={t.id} onClick={()=>setTab(t.id)} style={{ flex:1, padding:"8px 4px", fontSize:10, letterSpacing:"0.06em", textTransform:"uppercase", border:"none", background:"none", cursor:"pointer", color:tab===t.id?"#C9973A":"#9A8C7E", borderBottom:tab===t.id?"2px solid #C9973A":"2px solid transparent", fontWeight:tab===t.id?700:400, transition:"all .18s" }}>{t.label}</button>
-          ))}
-        </div>
-      </div>
-
-      <div style={{ flex:1, overflowY:"auto", padding:"4px 22px 24px" }}>
-
-        {/* Content */}
-        {tab==="content" && (<>
-          {ST("Organization")}
-          <BuilderInput label="Name"               value={config.orgName}       onChange={v=>set("orgName",v)}/>
-          <BuilderInput label="Tagline / Scripture" value={config.tagline}      onChange={v=>set("tagline",v)}/>
-          <BuilderInput label="Reference"           value={config.taglineRef}   onChange={v=>set("taglineRef",v)} placeholder="e.g. John 15:4"/>
-          {ST("Welcome Section")}
-          <BuilderInput label="Welcome Title"       value={config.welcomeTitle} onChange={v=>set("welcomeTitle",v)}/>
-          <BuilderTextarea label="Welcome Body"     value={config.welcomeBody}  onChange={v=>set("welcomeBody",v)} rows={5}/>
-          <BuilderTextarea label="Sub-text"         value={config.welcomeBody2} onChange={v=>set("welcomeBody2",v)} rows={2}/>
-          {ST("Button")}
-          <BuilderInput label="CTA Label"           value={config.ctaLabel}     onChange={v=>set("ctaLabel",v)}/>
-        </>)}
-
-        {/* Colors */}
-        {tab==="colors" && (<>
-          {ST("Color Themes")}
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-            {PRESETS.map((p,i)=>(
-              <div key={i} onClick={()=>set("preset",i)} style={{ padding:"12px 14px", borderRadius:8, cursor:"pointer", background:p.dark?"#1A1A2E":"#fff", border:`2px solid ${config.preset===i?p.accent:"#E0D8CE"}`, transition:"border-color .18s" }}>
-                <div style={{ display:"flex", gap:5, marginBottom:6 }}>
-                  <div style={{ width:16, height:16, borderRadius:3, background:p.bg, border:"1px solid #ccc" }}/>
-                  <div style={{ width:16, height:16, borderRadius:3, background:p.accent }}/>
-                  <div style={{ width:16, height:16, borderRadius:3, background:p.text }}/>
-                </div>
-                <div style={{ fontSize:11, color:p.dark?"#C9B89A":"#4A3A2A", fontWeight:config.preset===i?700:400 }}>{p.name}</div>
-              </div>
-            ))}
-          </div>
-        </>)}
-
-        {/* Media */}
-        {tab==="media" && (<>
-          {ST("Organization Logo")}
-          <div onClick={()=>logoRef.current.click()}
-            style={{ border:"2px dashed #D4C9B8", borderRadius:10, padding:"20px 16px", textAlign:"center", cursor:"pointer", background:"#FAF7F2", marginBottom:10 }}
-            onMouseEnter={e=>e.currentTarget.style.borderColor="#C9973A"}
-            onMouseLeave={e=>e.currentTarget.style.borderColor="#D4C9B8"}>
-            {config.logoUrl
-              ? <img src={config.logoUrl} alt="logo" style={{ maxHeight:64, maxWidth:"100%", objectFit:"contain" }}/>
-              : <div style={{ color:"#9A8C7E", fontSize:13 }}>+ Upload Logo<br/><span style={{ fontSize:11 }}>PNG · JPG · SVG</span></div>}
-          </div>
-          <input ref={logoRef} type="file" accept="image/*" style={{ display:"none" }} onChange={e=>handleFile(e,"logoUrl")}/>
-          {config.logoUrl && (
-            <button onClick={()=>set("logoUrl","")} style={{ background:"none", border:"1px solid #DDD5C8", borderRadius:6, padding:"6px 14px", fontSize:12, cursor:"pointer", color:"#6B1A2A", marginBottom:14 }}>Remove Logo</button>
-          )}
-
-          {ST("Background Image")}
-          <div onClick={()=>bgRef.current.click()}
-            style={{ border:"2px dashed #D4C9B8", borderRadius:10, overflow:"hidden", cursor:"pointer", marginBottom:10, minHeight:80, background:config.bgImageUrl?`url(${config.bgImageUrl}) center/cover`:"#FAF7F2", display:"flex", alignItems:"center", justifyContent:"center" }}
-            onMouseEnter={e=>e.currentTarget.style.borderColor="#C9973A"}
-            onMouseLeave={e=>e.currentTarget.style.borderColor="#D4C9B8"}>
-            {config.bgImageUrl
-              ? <div style={{ width:"100%", height:80, background:"rgba(0,0,0,.35)", display:"flex", alignItems:"center", justifyContent:"center" }}><span style={{ color:"#fff", fontSize:12 }}>Click to change</span></div>
-              : <div style={{ color:"#9A8C7E", fontSize:13, textAlign:"center", padding:16 }}>+ Upload Background<br/><span style={{ fontSize:11 }}>Landscape images work best</span></div>}
-          </div>
-          <input ref={bgRef} type="file" accept="image/*" style={{ display:"none" }} onChange={e=>handleFile(e,"bgImageUrl")}/>
-          {config.bgImageUrl && (
-            <button onClick={()=>set("bgImageUrl","")} style={{ background:"none", border:"1px solid #DDD5C8", borderRadius:6, padding:"6px 14px", fontSize:12, cursor:"pointer", color:"#6B1A2A" }}>Remove Background</button>
-          )}
-        </>)}
-
-        {/* Integration */}
-        {tab==="integration" && (<>
-          {ST("Zoom Meeting ID")}
-          <BuilderInput label="Paste your Zoom Meeting ID" value={config.zoomMeetingId} onChange={v=>set("zoomMeetingId",v)} placeholder="e.g. 123 456 7890"/>
-          <div style={{ fontSize:11, color:"#9A8C7E", marginTop:-8, marginBottom:16 }}>
-            Shown in the confirmation message so attendees can join.
-          </div>
-
-          <div style={{ background:"#F5F0E8", borderRadius:10, padding:16, fontSize:12, color:"#4A3A2A", lineHeight:1.85, marginBottom:6 }}>
-            <div style={{ fontWeight:700, color:"#C9973A", marginBottom:6 }}>Where to find your Meeting ID</div>
-            <ol style={{ margin:"0 0 10px 16px", padding:0 }}>
-              <li>Open <strong>Zoom</strong> → Meetings</li>
-              <li>Click the meeting you're hosting</li>
-              <li>Copy the <strong>Meeting ID</strong> shown at the top</li>
-            </ol>
-            <div style={{ background:"#FFF8F0", border:"1px solid #F0C080", borderRadius:8, padding:"10px 12px", fontSize:11, color:"#7A4A10" }}>
-              💡 Make sure <em>Registration → Required</em> is enabled on the Zoom meeting so attendees receive a personal join link by email.
-            </div>
-          </div>
-
-          {ST("Calendar (Add to Calendar)")}
-          <div style={{ fontSize:11, color:"#9A8C7E", marginBottom:12 }}>
-            Set the event date &amp; time so registrants can add it to their calendar right after signing up.
-          </div>
-          <BuilderInput label="Event Title" value={config.eventTitle} onChange={v=>set("eventTitle",v)} placeholder={config.orgName || "Abide"}/>
-          <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
-            <div style={{ marginBottom:13 }}>
-              <div style={{ fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:"#7A6A5A", marginBottom:5, fontFamily:"'Lato',sans-serif" }}>Date</div>
-              <input type="date" value={config.eventDate} onChange={e=>set("eventDate",e.target.value)}
-                style={{ width:"100%", padding:"9px 10px", border:"1px solid #DDD5C8", borderRadius:6, fontSize:13, fontFamily:"'Lato',sans-serif", outline:"none", background:"#FDFAF6", color:"#1A0A0E" }}/>
-            </div>
-            <div style={{ marginBottom:13 }}>
-              <div style={{ fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:"#7A6A5A", marginBottom:5, fontFamily:"'Lato',sans-serif" }}>Time</div>
-              <input type="time" value={config.eventTime} onChange={e=>set("eventTime",e.target.value)}
-                style={{ width:"100%", padding:"9px 10px", border:"1px solid #DDD5C8", borderRadius:6, fontSize:13, fontFamily:"'Lato',sans-serif", outline:"none", background:"#FDFAF6", color:"#1A0A0E" }}/>
-            </div>
-          </div>
-          <div style={{ marginBottom:13 }}>
-            <div style={{ fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", color:"#7A6A5A", marginBottom:5, fontFamily:"'Lato',sans-serif" }}>Duration (hours)</div>
-            <input type="number" min="0.5" max="8" step="0.5" value={config.eventDuration} onChange={e=>set("eventDuration",e.target.value)}
-              style={{ width:"100%", padding:"9px 12px", border:"1px solid #DDD5C8", borderRadius:6, fontSize:13, fontFamily:"'Lato',sans-serif", outline:"none", background:"#FDFAF6", color:"#1A0A0E" }}/>
-          </div>
-          {(!config.eventDate || !config.eventTime) && (
-            <div style={{ background:"#F5F0E8", borderRadius:8, padding:"10px 12px", fontSize:11, color:"#9A8C7E" }}>
-              Fill in date &amp; time above to enable the "Add to Calendar" buttons on the success screen.
-            </div>
-          )}
-          {(config.eventDate && config.eventTime) && (
-            <div style={{ background:"#F0FBF0", border:"1px solid #A8D5A8", borderRadius:8, padding:"10px 12px", fontSize:11, color:"#3A6A3A" }}>
-              ✓ Calendar buttons will appear after registration.
-            </div>
-          )}
-        </>)}
-
-        {/* Email */}
-        {tab==="email" && (<>
-          {ST("Auto-send Receipt Email")}
-          <div style={{ fontSize:11, color:"#9A8C7E", marginBottom:14, lineHeight:1.7 }}>
-            Immediately send a <strong>"we received you"</strong> email when someone registers. Your Zoom link is <em>not</em> included here — you'll send that separately once you've confirmed their place. Powered by <strong>EmailJS</strong> (free — 200 emails/month).
-          </div>
-
-          <div style={{ background:"#F5F0E8", borderRadius:10, padding:14, fontSize:12, color:"#4A3A2A", lineHeight:1.85, marginBottom:16 }}>
-            <div style={{ fontWeight:700, color:"#C9973A", marginBottom:6 }}>Setup (one time)</div>
-            <ol style={{ margin:"0 0 0 16px", padding:0 }}>
-              <li>Go to <strong>emailjs.com</strong> and create a free account</li>
-              <li>Add an <strong>Email Service</strong> (Gmail, Outlook, etc.) — copy the <em>Service ID</em></li>
-              <li>Create an <strong>Email Template</strong> — copy the <em>Template ID</em></li>
-              <li>Go to <strong>Account → API Keys</strong> — copy your <em>Public Key</em></li>
-              <li>Paste all three below</li>
-            </ol>
-          </div>
-
-          <BuilderInput label="Public Key"  value={config.ejsPublicKey}  onChange={v=>set("ejsPublicKey",v)}  placeholder="e.g. user_XXXXXXXXXX"/>
-          <BuilderInput label="Service ID"  value={config.ejsServiceId}  onChange={v=>set("ejsServiceId",v)}  placeholder="e.g. service_xxxxxxx"/>
-          <BuilderInput label="Template ID" value={config.ejsTemplateId} onChange={v=>set("ejsTemplateId",v)} placeholder="e.g. template_xxxxxxx"/>
-
-          {(config.ejsPublicKey && config.ejsServiceId && config.ejsTemplateId) ? (
-            <div style={{ background:"#F0FBF0", border:"1px solid #A8D5A8", borderRadius:8, padding:"10px 12px", fontSize:11, color:"#3A6A3A", marginBottom:14 }}>
-              ✓ Emails will be sent automatically on registration.
-            </div>
-          ) : (
-            <div style={{ background:"#F5F0E8", borderRadius:8, padding:"10px 12px", fontSize:11, color:"#9A8C7E", marginBottom:14 }}>
-              Fill in all three fields above to enable automatic emails.
-            </div>
-          )}
-
-          <div style={{ background:"#FFF8F0", border:"1px solid #F0C080", borderRadius:10, padding:14, fontSize:11, color:"#7A4A10", lineHeight:1.8 }}>
-            <div style={{ fontWeight:700, marginBottom:4 }}>Variables for your receipt email template</div>
-            <div style={{ marginBottom:8, color:"#9A6A10" }}>This is a <em>"we received your details"</em> email — keep it warm but don't include the Zoom link yet. Send that in a separate follow-up once you've confirmed them.</div>
-            <div style={{ fontFamily:"monospace", background:"#FFF0E0", borderRadius:6, padding:"8px 10px", fontSize:11, lineHeight:2 }}>
-              {[
-                ["to_name",        "Registrant's name"],
-                ["to_email",       "Their email address"],
-                ["from_name",      "Your org name"],
-                ["event_title",    "Event title"],
-                ["event_date_time","Formatted date & time"],
-                ["org_tagline",    "Your tagline / scripture"],
-              ].map(([v, hint])=>(
-                <div key={v} style={{ display:"flex", gap:8, alignItems:"baseline" }}>
-                  <span style={{ color:"#C9700A", minWidth:140 }}>{`{{${v}}}`}</span>
-                  <span style={{ color:"#9A7A50", fontSize:10 }}>{hint}</span>
-                </div>
-              ))}
-            </div>
-            <div style={{ marginTop:10, paddingTop:8, borderTop:"1px solid #F0C080", color:"#9A6A10" }}>
-              💡 <strong>To send the Zoom link</strong> later, create a second EmailJS template with <span style={{ fontFamily:"monospace", background:"#FFF0E0", padding:"1px 5px", borderRadius:3 }}>{`{{zoom_link}}`}</span> and send it manually to confirmed attendees.
-            </div>
-          </div>
-        </>)}
-      </div>
-
-      <div style={{ padding:"13px 22px", borderTop:"1px solid #E8E0D5", fontSize:11, color:"#B0A090", textAlign:"center" }}>
-        Changes reflect live in the preview →
-      </div>
-    </div>
-  );
-}
-
-/* ── Root ─────────────────────────────────────────────────────── */
-function App() {
-  const [config, setConfig]       = useState(DEFAULT);
-  const [mobileTab, setMobileTab] = useState("preview");
-  const isMobile = window.innerWidth < 768;
-
-  if (isMobile) {
-    return (
-      <div style={{ fontFamily:"'Lato',sans-serif", background:"#FAF7F2", minHeight:"100vh" }}>
-        <div style={{ background:"#1A0A0E", padding:"12px 20px", display:"flex" }}>
-          {["preview","builder"].map(v=>(
-            <button key={v} onClick={()=>setMobileTab(v)} style={{ flex:1, padding:8, fontSize:11, letterSpacing:"0.1em", textTransform:"uppercase", border:"none", background:"none", cursor:"pointer", color:mobileTab===v?"#C9973A":"#7A6A5A", borderBottom:mobileTab===v?"2px solid #C9973A":"2px solid transparent" }}>{v}</button>
-          ))}
-        </div>
-        <div style={{ display:mobileTab==="builder"?"block":"none" }}><BuilderPanel config={config} setConfig={setConfig}/></div>
-        <div style={{ display:mobileTab==="preview"?"block":"none" }}><RegistrationPage config={config} isMobile={true}/></div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ display:"flex", height:"100vh", overflow:"hidden" }}>
-      <BuilderPanel config={config} setConfig={setConfig}/>
-      <div style={{ flex:1, overflowY:"auto", background:PRESETS[config.preset].bg }}>
-        <RegistrationPage config={config} isMobile={false}/>
-      </div>
     </div>
   );
 }
