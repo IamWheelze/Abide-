@@ -46,8 +46,9 @@ const C = {
   ctaLabel:      "Enter the Space",
   bgImageUrl:    "",
 
-  /* Paste your Zoom meeting join link here (e.g. https://zoom.us/j/123456789) */
-  zoomJoinUrl:   "",
+  /* Zoom meeting details */
+  zoomJoinUrl:   "https://zoom.us/j/84699471218",
+  zoomPasscode:  "905196",
 
   /* Event date/time for "Add to Calendar" — optional */
   eventTitle:    "Abide",
@@ -278,14 +279,19 @@ function App() {
               We are grateful you've taken this step. Use the link below to join when the session begins.
             </p>
             {C.zoomJoinUrl && (
-              <a href={C.zoomJoinUrl} target="_blank" rel="noopener noreferrer"
-                style={{ display:"inline-flex", alignItems:"center", gap:10, padding:"13px 22px", borderRadius:8, background:T.accent, color:"#FAF7F2", textDecoration:"none", fontSize:14, fontWeight:700, letterSpacing:"0.04em" }}>
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
-                  <path d="M4 8.5C4 7.67 4.67 7 5.5 7h9c.83 0 1.5.67 1.5 1.5v7c0 .83-.67 1.5-1.5 1.5h-9C4.67 17 4 16.33 4 15.5v-7z" fill="#FAF7F2"/>
-                  <path d="M16 10.5l4-2.5v8l-4-2.5v-3z" fill="#FAF7F2"/>
-                </svg>
-                Join Zoom Meeting
-              </a>
+              <div>
+                <a href={C.zoomJoinUrl} target="_blank" rel="noopener noreferrer"
+                  style={{ display:"inline-flex", alignItems:"center", gap:10, padding:"13px 22px", borderRadius:8, background:T.accent, color:"#FAF7F2", textDecoration:"none", fontSize:14, fontWeight:700, letterSpacing:"0.04em" }}>
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <path d="M4 8.5C4 7.67 4.67 7 5.5 7h9c.83 0 1.5.67 1.5 1.5v7c0 .83-.67 1.5-1.5 1.5h-9C4.67 17 4 16.33 4 15.5v-7z" fill="#FAF7F2"/>
+                    <path d="M16 10.5l4-2.5v8l-4-2.5v-3z" fill="#FAF7F2"/>
+                  </svg>
+                  Join Zoom Meeting
+                </a>
+                {C.zoomPasscode && (
+                  <p style={{ fontSize:12, color:T.sub, marginTop:12 }}>Passcode: <strong style={{ color:T.text, letterSpacing:"0.1em" }}>{C.zoomPasscode}</strong></p>
+                )}
+              </div>
             )}
           </div>
 
