@@ -14,12 +14,20 @@
 import "dotenv/config";
 import express from "express";
 import cors from "cors";
+import { readFileSync } from "fs";
+import { join, dirname } from "path";
+import { fileURLToPath } from "url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
 
 const app  = express();
 const PORT = process.env.PORT || 4000;
 
 app.use(cors({ origin: ["http://localhost:3000", /\.vercel\.app$/, /\.netlify\.app$/] }));
 app.use(express.json());
+
+// Serve the standalone index.html for all non-API routes
+app.get("/", (_req, res) => res.sendFile(join(__dirname, "index.html")));
 
 // ── Zoom token cache (tokens are valid ~1 hour) ───────────────────
 let _zoomToken   = null;
