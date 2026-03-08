@@ -166,25 +166,30 @@ function App() {
     ...f, intents: f.intents.includes(item) ? f.intents.filter(i=>i!==item) : [...f.intents,item]
   }));
 
-  const submit = () => {
+  const submit = async () => {
     if (!form.name || !form.email) { setErrMsg("Please enter your name and email to continue."); return; }
     setErrMsg("");
-    setStatus("success");
     if (C.formspreeId) {
-      fetch(`https://formspree.io/f/${C.formspreeId}`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
-        body: JSON.stringify({
-          name:    form.name,
-          email:   form.email,
-          phone:   form.phone,
-          city:    form.city,
-          org:     form.org,
-          intents: form.intents.join("; "),
-          consent: form.consent ? "Yes" : "No",
-        }),
-      }).catch(()=>{});
+      try {
+        const res = await fetch(`https://formspree.io/f/${C.formspreeId}`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "Accept": "application/json" },
+          body: JSON.stringify({
+            name:    form.name,
+            email:   form.email,
+            phone:   form.phone,
+            city:    form.city,
+            org:     form.org,
+            intents: form.intents.join("; "),
+            consent: form.consent ? "Yes" : "No",
+          }),
+        });
+        if (!res.ok) { setErrMsg("Submission failed — please try again or contact us directly."); return; }
+      } catch {
+        setErrMsg("Network error — please check your connection and try again."); return;
+      }
     }
+    setStatus("success");
   };
 
   const SectionHead = ({ num, title }) => (
