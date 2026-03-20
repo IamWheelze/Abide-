@@ -340,16 +340,22 @@ function App() {
           </div>
           <div style={{ fontSize:11, letterSpacing:"0.2em", color:T.accent, marginBottom:32 }}>Matthew 11:28</div>
 
+          {/* Add to Calendar — shown first */}
           <div style={{ background:`${T.accent}0D`, border:`1px solid ${T.accent}30`, borderRadius:12, padding:"24px 28px", marginBottom:24 }}>
-            <div style={{ fontSize:11, letterSpacing:"0.18em", textTransform:"uppercase", color:T.accent, marginBottom:10 }}>You're registered</div>
-            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:16, color:T.text, lineHeight:1.8, margin:0 }}>
-              We are grateful you've taken this step. The Zoom link has been added to your calendar — you'll find everything you need there when the time comes.
+            <div style={{ fontSize:13, letterSpacing:"0.18em", textTransform:"uppercase", color:T.accent, marginBottom:6, fontWeight:700 }}>Add to your calendar</div>
+            <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:15, color:T.sub, lineHeight:1.7, margin:"0 0 18px" }}>
+              Save the date — the Zoom link is included in the invite.
             </p>
+            <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
+              <CalBtn href={gCalUrl()}><CalSvg d="M8 15h8"/> Google Calendar</CalBtn>
+              <CalBtn onClick={downloadIcal}><CalSvg d="M8 14h8M8 17h5"/> Outlook Calendar (.ics)</CalBtn>
+              <CalBtn href={yahooUrl()}><CalSvg d="M10 13l2 4 2-4"/> Yahoo Calendar</CalBtn>
+            </div>
           </div>
 
           {/* Join Zoom */}
           {C.zoomJoinUrl && (
-            <div style={{ marginTop:28 }}>
+            <div style={{ marginTop:20 }}>
               <a href={C.zoomJoinUrl} target="_blank" rel="noopener noreferrer"
                 style={{ display:"inline-flex", alignItems:"center", gap:10, padding:"14px 28px", background:T.accent, border:"none", borderRadius:8, color:"#FAF7F2", fontSize:15, fontFamily:"'Cormorant Garamond',serif", fontWeight:600, letterSpacing:"0.06em", textDecoration:"none", cursor:"pointer" }}>
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="14" height="12" rx="2" stroke="#FAF7F2" strokeWidth="1.8"/><path d="M16 10l6-3v10l-6-3V10z" stroke="#FAF7F2" strokeWidth="1.8" strokeLinejoin="round"/></svg>
@@ -360,16 +366,6 @@ function App() {
               )}
             </div>
           )}
-
-          {/* Add to Calendar */}
-          <div style={{ marginTop:28 }}>
-            <div style={{ fontSize:10, letterSpacing:"0.22em", textTransform:"uppercase", color:T.sub, marginBottom:14 }}>Add to your calendar</div>
-            <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
-              <CalBtn href={gCalUrl()}><CalSvg d="M8 15h8"/> Google Calendar</CalBtn>
-              <CalBtn onClick={downloadIcal}><CalSvg d="M8 14h8M8 17h5"/> Outlook Calendar (.ics)</CalBtn>
-              <CalBtn href={yahooUrl()}><CalSvg d="M10 13l2 4 2-4"/> Yahoo Calendar</CalBtn>
-            </div>
-          </div>
         </div>
       )}
     </div>
