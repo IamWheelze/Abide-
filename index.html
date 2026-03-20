@@ -205,9 +205,14 @@ function App() {
             consent: form.consent ? "Yes" : "No",
           }),
         });
-        if (!res.ok) { setErrMsg("Submission failed — please try again or contact us directly."); return; }
-      } catch {
-        setErrMsg("Network error — please check your connection and try again."); return;
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          console.warn("Formspree error:", res.status, body);
+          /* Still let the user through so they can add to calendar */
+        }
+      } catch (err) {
+        console.warn("Formspree network error:", err);
+        /* Still let the user through so they can add to calendar */
       }
     }
     setStatus("success");
