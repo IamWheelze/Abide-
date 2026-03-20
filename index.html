@@ -100,7 +100,12 @@ function calData() {
 }
 
 function zoomDetails() {
-  const parts = [C.zoomJoinUrl];
+  const parts = ["Join Zoom Meeting", C.zoomJoinUrl];
+  const idMatch = C.zoomJoinUrl && C.zoomJoinUrl.match(/\/j\/(\d+)/);
+  if (idMatch) {
+    const raw = idMatch[1];
+    parts.push(`Meeting ID: ${raw.replace(/(\d{3})(\d{4})(\d{4})/,"$1 $2 $3")}`);
+  }
   if (C.zoomPasscode) parts.push(`Passcode: ${C.zoomPasscode}`);
   return parts.join("\n");
 }
