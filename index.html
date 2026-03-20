@@ -122,6 +122,22 @@ function outlookUrl() {
   return `https://outlook.live.com/calendar/0/deeplink/compose?${new URLSearchParams(params)}`;
 }
 
+function yahooUrl() {
+  if (C.zoomYahooCalUrl) return C.zoomYahooCalUrl;
+  const d = calData();
+  const title = C.eventTitle || C.orgName;
+  const params = { v:"60", VIEW:"d", TITLE:title };
+  if (d) {
+    const pad = n => String(n).padStart(2,"0");
+    const fmt = x => `${x.getFullYear()}${pad(x.getMonth()+1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00Z`;
+    params.ST = fmt(d.start);
+    const dur = parseFloat(C.eventDuration)||1;
+    params.DUR = `${String(Math.floor(dur)).padStart(2,"0")}${String(Math.round((dur%1)*60)).padStart(2,"0")}`;
+  }
+  if (C.zoomJoinUrl) { params.URL = C.zoomJoinUrl; params.DESC = zoomDetails(); }
+  return `https://calendar.yahoo.com/?${new URLSearchParams(params)}`;
+}
+
 function downloadIcal() {
   if (C.zoomIcsUrl) { window.open(C.zoomIcsUrl, "_blank"); return; }
   const d = calData(); if (!d) return;
@@ -345,9 +361,8 @@ function App() {
             <div style={{ fontSize:10, letterSpacing:"0.22em", textTransform:"uppercase", color:T.sub, marginBottom:14 }}>Add to your calendar</div>
             <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
               <CalBtn href={gCalUrl()}><CalSvg d="M8 15h8"/> Google Calendar</CalBtn>
-              <CalBtn href={outlookUrl()}><CalSvg d="M8 14h8M8 17h5"/> Outlook</CalBtn>
-              <CalBtn onClick={downloadIcal}><CalSvg d="M12 13v4M10 15h4"/> Apple Calendar</CalBtn>
-              {C.zoomYahooCalUrl && <CalBtn href={C.zoomYahooCalUrl}><CalSvg d="M10 13l2 4 2-4"/> Yahoo</CalBtn>}
+              <CalBtn onClick={downloadIcal}><CalSvg d="M8 14h8M8 17h5"/> Outlook Calendar (.ics)</CalBtn>
+              <CalBtn href={yahooUrl()}><CalSvg d="M10 13l2 4 2-4"/> Yahoo Calendar</CalBtn>
             </div>
           </div>
         </div>
