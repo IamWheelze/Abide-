@@ -47,13 +47,13 @@ const C = {
   bgImageUrl:    "https://i.imgur.com/oV6YZ4J.jpeg",
 
   /* Zoom meeting details */
-  zoomJoinUrl:   "https://us06web.zoom.us/j/84699471218?pwd=RG1uXbno4ft5BXNa6dx3TQnwe3pigc.1",
-  zoomPasscode:  "905196",
+  zoomJoinUrl:   "https://us06web.zoom.us/meeting/register/t9tCRomUSHmHRQVxrT6KGQ",
+  zoomPasscode:  "",
 
-  /* Zoom-generated calendar links (use these directly so Zoom owns the timezone) */
-  zoomGoogleCalUrl: "https://us06web.zoom.us/meeting/tZArfuCsqTooG9zBEpiMcM0sWdQDVGdXLAD0/calendar/google/add?meetingMasterEventId=mQ5P5R6sSieyLYK3BwUWjA",
-  zoomIcsUrl:       "https://us06web.zoom.us/meeting/tZArfuCsqTooG9zBEpiMcM0sWdQDVGdXLAD0/ics?meetingMasterEventId=mQ5P5R6sSieyLYK3BwUWjA",
-  zoomYahooCalUrl:  "https://calendar.yahoo.com/?v=60&VIEW=d&TITLE=%20%20%20%20%20%20Abide%20in%20me%2C%20and%20I%20in%20you.%20John%2015%3A4&in_loc=https%3A%2F%2Fus06web.zoom.us%2Fj%2F84699471218%3Fpwd%3DRG1uXbno4ft5BXNa6dx3TQnwe3pigc.1&URL=https%3A%2F%2Fus06web.zoom.us%2Fj%2F84699471218%3Fpwd%3DRG1uXbno4ft5BXNa6dx3TQnwe3pigc.1&ST=20260328T160000Z&DUR=0130&DESC=TM%20is%20inviting%20you%20to%20a%20scheduled%20Zoom%20meeting.%0D%0AJoin%20Zoom%20Meeting%0D%0Ahttps%3A%2F%2Fus06web.zoom.us%2Fj%2F84699471218%3Fpwd%3DRG1uXbno4ft5BXNa6dx3TQnwe3pigc.1%0D%0A%0D%0AMeeting%20ID%3A%20846%209947%201218%0D%0APasscode%3A%20905196",
+  /* Zoom-generated calendar links — leave blank to auto-build from zoomJoinUrl */
+  zoomGoogleCalUrl: "",
+  zoomIcsUrl:       "",
+  zoomYahooCalUrl:  "",
 
   /* Event date/time */
   eventTitle:    "Abide",
@@ -120,6 +120,22 @@ function outlookUrl() {
   if (d) { params.startdt = d.iso(d.start); params.enddt = d.iso(d.end); }
   if (C.zoomJoinUrl) { params.location = C.zoomJoinUrl; params.body = zoomDetails(); }
   return `https://outlook.live.com/calendar/0/deeplink/compose?${new URLSearchParams(params)}`;
+}
+
+function yahooUrl() {
+  if (C.zoomYahooCalUrl) return C.zoomYahooCalUrl;
+  const d = calData();
+  const title = C.eventTitle || C.orgName;
+  const params = { v:"60", VIEW:"d", TITLE:title };
+  if (d) {
+    const pad = n => String(n).padStart(2,"0");
+    const fmt = x => `${x.getFullYear()}${pad(x.getMonth()+1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00Z`;
+    params.ST = fmt(d.start);
+    const dur = parseFloat(C.eventDuration)||1;
+    params.DUR = `${String(Math.floor(dur)).padStart(2,"0")}${String(Math.round((dur%1)*60)).padStart(2,"0")}`;
+  }
+  if (C.zoomJoinUrl) { params.URL = C.zoomJoinUrl; params.DESC = zoomDetails(); }
+  return `https://calendar.yahoo.com/?${new URLSearchParams(params)}`;
 }
 
 function downloadIcal() {
@@ -326,14 +342,27 @@ function App() {
             </p>
           </div>
 
+          {/* Join Zoom */}
+          {C.zoomJoinUrl && (
+            <div style={{ marginTop:28 }}>
+              <a href={C.zoomJoinUrl} target="_blank" rel="noopener noreferrer"
+                style={{ display:"inline-flex", alignItems:"center", gap:10, padding:"14px 28px", background:T.accent, border:"none", borderRadius:8, color:"#FAF7F2", fontSize:15, fontFamily:"'Cormorant Garamond',serif", fontWeight:600, letterSpacing:"0.06em", textDecoration:"none", cursor:"pointer" }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><rect x="2" y="6" width="14" height="12" rx="2" stroke="#FAF7F2" strokeWidth="1.8"/><path d="M16 10l6-3v10l-6-3V10z" stroke="#FAF7F2" strokeWidth="1.8" strokeLinejoin="round"/></svg>
+                Join Zoom Meeting
+              </a>
+              {C.zoomPasscode && (
+                <div style={{ fontSize:12, color:T.sub, marginTop:8 }}>Passcode: <span style={{ color:T.text, fontWeight:700 }}>{C.zoomPasscode}</span></div>
+              )}
+            </div>
+          )}
+
           {/* Add to Calendar */}
           <div style={{ marginTop:28 }}>
             <div style={{ fontSize:10, letterSpacing:"0.22em", textTransform:"uppercase", color:T.sub, marginBottom:14 }}>Add to your calendar</div>
             <div style={{ display:"flex", gap:10, justifyContent:"center", flexWrap:"wrap" }}>
               <CalBtn href={gCalUrl()}><CalSvg d="M8 15h8"/> Google Calendar</CalBtn>
-              <CalBtn href={outlookUrl()}><CalSvg d="M8 14h8M8 17h5"/> Outlook</CalBtn>
-              <CalBtn onClick={downloadIcal}><CalSvg d="M12 13v4M10 15h4"/> Apple Calendar</CalBtn>
-              {C.zoomYahooCalUrl && <CalBtn href={C.zoomYahooCalUrl}><CalSvg d="M10 13l2 4 2-4"/> Yahoo</CalBtn>}
+              <CalBtn onClick={downloadIcal}><CalSvg d="M8 14h8M8 17h5"/> Outlook Calendar (.ics)</CalBtn>
+              <CalBtn href={yahooUrl()}><CalSvg d="M10 13l2 4 2-4"/> Yahoo Calendar</CalBtn>
             </div>
           </div>
         </div>
