@@ -91,12 +91,24 @@ function calData() {
   if (!C.eventDate || !C.eventTime) return null;
   const [y,mo,d] = C.eventDate.split("-").map(Number);
   const [h,mi]   = C.eventTime.split(":").map(Number);
-  const start    = new Date(y, mo-1, d, h, mi);
-  const end      = new Date(start.getTime() + (parseFloat(C.eventDuration)||1)*3600000);
   const pad      = n => String(n).padStart(2,"0");
-  const fmt      = x => `${x.getFullYear()}${pad(x.getMonth()+1)}${pad(x.getDate())}T${pad(x.getHours())}${pad(x.getMinutes())}00`;
-  const iso      = x => `${x.getFullYear()}-${pad(x.getMonth()+1)}-${pad(x.getDate())}T${pad(x.getHours())}:${pad(x.getMinutes())}:00`;
+  /* eventTime is WAT (UTC+1) — convert to UTC so every calendar shows the right time */
+  const start    = new Date(Date.UTC(y, mo-1, d, h - 1, mi));
+  const end      = new Date(start.getTime() + (parseFloat(C.eventDuration)||1)*3600000);
+  const fmt      = x => `${x.getUTCFullYear()}${pad(x.getUTCMonth()+1)}${pad(x.getUTCDate())}T${pad(x.getUTCHours())}${pad(x.getUTCMinutes())}00Z`;
+  const iso      = x => `${x.getUTCFullYear()}-${pad(x.getUTCMonth()+1)}-${pad(x.getUTCDate())}T${pad(x.getUTCHours())}:${pad(x.getUTCMinutes())}:00Z`;
   return { start, end, fmt, iso };
+}
+
+function timezoneHint() {
+  return [
+    "🕕 6:00 PM WAT  — Lagos / Abuja",
+    "🕔 5:00 PM GMT  — London",
+    "🕐 1:00 PM EDT  — New York",
+    "🕙 10:00 AM PDT — Los Angeles",
+    "🕗 8:00 PM EAT  — Nairobi",
+    "🕘 9:00 PM GST  — Dubai",
+  ].join("\n");
 }
 
 function zoomDetails() {
@@ -113,9 +125,9 @@ function zoomDetails() {
 function gCalUrl() {
   if (C.zoomGoogleCalUrl) return C.zoomGoogleCalUrl;
   const d = calData();
-  const params = { action:"TEMPLATE", text:C.eventTitle||C.orgName };
+  const params = { action:"TEMPLATE", text:C.eventTitle||C.orgName, ctz:"Africa/Lagos" };
   if (d) params.dates = `${d.fmt(d.start)}/${d.fmt(d.end)}`;
-  if (C.zoomJoinUrl) { params.location = C.zoomJoinUrl; params.details = zoomDetails(); }
+  if (C.zoomJoinUrl) { params.location = C.zoomJoinUrl; params.details = zoomDetails() + "\n\n" + timezoneHint(); }
   return `https://calendar.google.com/calendar/render?${new URLSearchParams(params)}`;
 }
 
@@ -123,7 +135,7 @@ function outlookUrl() {
   const d = calData();
   const params = { subject:C.eventTitle||C.orgName };
   if (d) { params.startdt = d.iso(d.start); params.enddt = d.iso(d.end); }
-  if (C.zoomJoinUrl) { params.location = C.zoomJoinUrl; params.body = zoomDetails(); }
+  if (C.zoomJoinUrl) { params.location = C.zoomJoinUrl; params.body = zoomDetails() + "\n\n" + timezoneHint(); }
   return `https://outlook.live.com/calendar/0/deeplink/compose?${new URLSearchParams(params)}`;
 }
 
@@ -139,7 +151,7 @@ function yahooUrl() {
     const dur = parseFloat(C.eventDuration)||1;
     params.DUR = `${String(Math.floor(dur)).padStart(2,"0")}${String(Math.round((dur%1)*60)).padStart(2,"0")}`;
   }
-  if (C.zoomJoinUrl) { params.URL = C.zoomJoinUrl; params.DESC = zoomDetails(); }
+  if (C.zoomJoinUrl) { params.URL = C.zoomJoinUrl; params.DESC = zoomDetails() + "\n\n" + timezoneHint(); }
   return `https://calendar.yahoo.com/?${new URLSearchParams(params)}`;
 }
 
@@ -149,17 +161,15 @@ function downloadIcal() {
   const title = C.eventTitle || C.orgName;
   const lines = [
     "BEGIN:VCALENDAR","VERSION:2.0","PRODID:-//Abide//EN",
-    "BEGIN:VTIMEZONE","TZID:Africa/Lagos",
-    "BEGIN:STANDARD","DTSTART:19700101T000000","TZOFFSETFROM:+0100","TZOFFSETTO:+0100","TZNAME:WAT","END:STANDARD",
-    "END:VTIMEZONE",
     "BEGIN:VEVENT",
     `UID:abide-${Date.now()}@abide`,
-    `DTSTART;TZID=Africa/Lagos:${d.fmt(d.start)}`,
-    `DTEND;TZID=Africa/Lagos:${d.fmt(d.end)}`,
+    `DTSTART:${d.fmt(d.start)}`,
+    `DTEND:${d.fmt(d.end)}`,
     `SUMMARY:${title}`,
   ];
   if (C.zoomJoinUrl) lines.push(`LOCATION:${C.zoomJoinUrl}`);
-  if (C.zoomJoinUrl) lines.push(`DESCRIPTION:${zoomDetails().replace(/\n/g,"\\n")}`);
+  const desc = (zoomDetails() + "\n\n" + timezoneHint()).replace(/\n/g,"\\n");
+  lines.push(`DESCRIPTION:${desc}`);
   lines.push(
     "BEGIN:VALARM","TRIGGER:-P1D","ACTION:DISPLAY",`DESCRIPTION:Tomorrow: ${title} at 6pm WAT`,"END:VALARM",
     "BEGIN:VALARM","TRIGGER:-PT1H","ACTION:DISPLAY",`DESCRIPTION:${title} starts in 1 hour`,"END:VALARM",
