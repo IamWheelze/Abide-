@@ -58,7 +58,7 @@ const C = {
   /* Event date/time */
   eventTitle:    "Abide",
   eventDate:     "2026-03-28",  /* YYYY-MM-DD */
-  eventTime:     "18:00",       /* 6pm WAT    */
+  eventTime:     "18:00",       /* 6pm CET (UTC+1) */
   eventDuration: 1.5,           /* 1h 30m per Zoom */
 
   /* Formspree — sign up free at formspree.io, paste your form ID here */
@@ -92,7 +92,7 @@ function calData() {
   const [y,mo,d] = C.eventDate.split("-").map(Number);
   const [h,mi]   = C.eventTime.split(":").map(Number);
   const pad      = n => String(n).padStart(2,"0");
-  /* eventTime is WAT (UTC+1) — convert to UTC so every calendar shows the right time */
+  /* eventTime is CET (UTC+1) — convert to UTC so every calendar shows the right local time */
   const start    = new Date(Date.UTC(y, mo-1, d, h - 1, mi));
   const end      = new Date(start.getTime() + (parseFloat(C.eventDuration)||1)*3600000);
   const fmt      = x => `${x.getUTCFullYear()}${pad(x.getUTCMonth()+1)}${pad(x.getUTCDate())}T${pad(x.getUTCHours())}${pad(x.getUTCMinutes())}00Z`;
@@ -101,13 +101,16 @@ function calData() {
 }
 
 function timezoneHint() {
+  /* Event: 18:00 CET (UTC+1) = 17:00 UTC. Mar 28: US on EDT, UK still on GMT */
   return [
-    "🕕 6:00 PM WAT  — Lagos / Abuja",
-    "🕔 5:00 PM GMT  — London",
-    "🕐 1:00 PM EDT  — New York",
-    "🕙 10:00 AM PDT — Los Angeles",
-    "🕗 8:00 PM EAT  — Nairobi",
-    "🕘 9:00 PM GST  — Dubai",
+    "6:00 PM CET  — Paris / Berlin / Amsterdam",
+    "5:00 PM GMT  — London",
+    "6:00 PM WAT  — Lagos / Abuja",
+    "1:00 PM EDT  — New York / Atlanta",
+    "10:00 AM PDT — Los Angeles",
+    "8:00 PM EAT  — Nairobi",
+    "9:00 PM GST  — Dubai",
+    "10:30 PM IST — Mumbai / New Delhi",
   ].join("\n");
 }
 
@@ -125,7 +128,7 @@ function zoomDetails() {
 function gCalUrl() {
   if (C.zoomGoogleCalUrl) return C.zoomGoogleCalUrl;
   const d = calData();
-  const params = { action:"TEMPLATE", text:C.eventTitle||C.orgName, ctz:"Africa/Lagos" };
+  const params = { action:"TEMPLATE", text:C.eventTitle||C.orgName, ctz:"Europe/Paris" };
   if (d) params.dates = `${d.fmt(d.start)}/${d.fmt(d.end)}`;
   if (C.zoomJoinUrl) { params.location = C.zoomJoinUrl; params.details = zoomDetails() + "\n\n" + timezoneHint(); }
   return `https://calendar.google.com/calendar/render?${new URLSearchParams(params)}`;
