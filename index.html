@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Abide — Registration</title>
+  <title>Abide — Stewarding Your Health</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400;1,600&family=Lato:wght@300;400;700&display=swap" rel="stylesheet" />
@@ -27,23 +27,25 @@ const { useState, useEffect } = React;
 
 /* ── Forest Green theme ───────────────────────────────────────── */
 const T = {
-  accent: "#2C5F2E",
-  card:   "rgba(44,95,46,0.07)",
-  bg:     "#EDF2EC",
-  text:   "#141F14",
-  sub:    "#5A7A5B",
-  border: "rgba(44,95,46,0.22)",
+  accent:  "#2C5F2E",
+  accent2: "#C9A66B",
+  card:    "rgba(44,95,46,0.07)",
+  bg:      "#EDF2EC",
+  text:    "#141F14",
+  sub:     "#5A7A5B",
+  border:  "rgba(44,95,46,0.22)",
 };
 
 /* ── Config — edit these values ──────────────────────────────── */
 const C = {
   orgName:       "Abide",
-  tagline:       "Abide in me, and I in you.",
-  taglineRef:    "John 15:4",
-  welcomeTitle:  "Welcome",
-  welcomeBody:   "We are honored to invite you into this intentional private space for senior executive Christian leaders. In a world that demands constant excellence and often causes you to compartmentalize your belief in God and your faith, Abide is a dedicated harbor for your soul, bridging the gap between professional leadership, spiritual depth, and true rest.",
-  welcomeBody2:  "Please share a few details as you enter this space.",
-  ctaLabel:      "Enter the Space",
+  tagline:       "Beloved, I pray that you may prosper in all things and be in health, just as your soul prospers.",
+  taglineRef:    "3 John 1:2",
+  eventTopic:    "Stewarding Your Health in Times of Responsibility",
+  welcomeTitle:  "A Sacred Pause for Your Wellbeing",
+  welcomeBody:   "We are honored to invite you into this intentional space for senior women in leadership. In a season that often demands constant excellence — and quietly asks you to set your own wellbeing aside — Abide invites you to pause and consider what it means to steward your health with the same faithfulness you bring to those you lead. Together, we'll explore rest, renewal, and practical wisdom for sustaining your body, mind, and spirit through seasons of responsibility.",
+  welcomeBody2:  "Please share a few details to reserve your place in this conversation.",
+  ctaLabel:      "Reserve My Seat",
   bgImageUrl:    "https://i.imgur.com/oV6YZ4J.jpeg",
 
   /* Zoom meeting details */
@@ -56,9 +58,9 @@ const C = {
   zoomYahooCalUrl:  "",
 
   /* Event date/time */
-  eventTitle:    "Abide",
-  eventDate:     "2026-03-28",  /* YYYY-MM-DD */
-  eventTime:     "18:00",       /* 6pm CET (UTC+1) */
+  eventTitle:    "Abide: Stewarding Your Health",
+  eventDate:     "2026-07-11",  /* YYYY-MM-DD */
+  eventTime:     "18:00",       /* 6pm WAT (UTC+1) */
   eventDuration: 1.5,           /* 1h 30m per Zoom */
 
   /* Formspree — sign up free at formspree.io, paste your form ID here */
@@ -66,16 +68,42 @@ const C = {
 };
 
 const INTENTS = [
-  "A desire for true rest and spiritual renewal.",
-  "A need for clarity and discernment in leadership.",
-  "A heart for connection and fellowship with like-minded Christian leaders.",
-  "A dedicated time for prayer and reflection.",
+  "A desire to steward my health amid the weight of responsibility.",
+  "A need for practical wisdom on rest, nutrition, and sustainable rhythms.",
+  "A heart for connection with other women navigating similar seasons of leadership.",
+  "A dedicated time for prayer over my body, mind, and spirit.",
 ];
 
 /* ── Atoms ────────────────────────────────────────────────────── */
 const Label = ({ children }) => (
   <div style={{ fontSize:10, letterSpacing:"0.18em", textTransform:"uppercase", fontWeight:700, color:T.sub, marginBottom:6 }}>{children}</div>
 );
+
+const HeartIcon = ({ color }) => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+    <path d="M12 21s-7.5-4.6-10-9.1C0.3 8.6 2 5 6 5c2.2 0 4 1.3 5 3 1-1.7 2.8-3 5-3 4 0 5.7 3.6 4 6.9C19.5 16.4 12 21 12 21z" stroke={color||"currentColor"} strokeWidth="1.8" strokeLinejoin="round" fill="none"/>
+  </svg>
+);
+
+const ClockIcon = ({ color }) => (
+  <svg width="13" height="13" viewBox="0 0 24 24" fill="none">
+    <circle cx="12" cy="12" r="9" stroke={color||"currentColor"} strokeWidth="1.8"/>
+    <path d="M12 7v5l3.5 2" stroke={color||"currentColor"} strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+  </svg>
+);
+
+function eventDateLabel() {
+  if (!C.eventDate || !C.eventTime) return "";
+  const [y,mo,d] = C.eventDate.split("-").map(Number);
+  const [h,mi]   = C.eventTime.split(":").map(Number);
+  const date     = new Date(y, mo-1, d);
+  const day      = date.toLocaleDateString("en-US", { weekday:"long" });
+  const mon      = date.toLocaleDateString("en-US", { month:"long" });
+  const hour12   = ((h+11)%12)+1;
+  const ampm     = h < 12 ? "AM" : "PM";
+  const minStr   = mi ? `:${String(mi).padStart(2,"0")}` : "";
+  return `${day}, ${mon} ${d}, ${y} · ${hour12}${minStr} ${ampm} WAT`;
+}
 
 function FormInput({ style, ...props }) {
   const [focus, setFocus] = useState(false);
@@ -92,7 +120,7 @@ function calData() {
   const [y,mo,d] = C.eventDate.split("-").map(Number);
   const [h,mi]   = C.eventTime.split(":").map(Number);
   const pad      = n => String(n).padStart(2,"0");
-  /* eventTime is CET (UTC+1) — convert to UTC so every calendar shows the right local time */
+  /* eventTime is WAT (UTC+1, no DST) — convert to UTC so every calendar shows the right local time */
   const start    = new Date(Date.UTC(y, mo-1, d, h - 1, mi));
   const end      = new Date(start.getTime() + (parseFloat(C.eventDuration)||1)*3600000);
   const fmt      = x => `${x.getUTCFullYear()}${pad(x.getUTCMonth()+1)}${pad(x.getUTCDate())}T${pad(x.getUTCHours())}${pad(x.getUTCMinutes())}00Z`;
@@ -101,11 +129,12 @@ function calData() {
 }
 
 function timezoneHint() {
-  /* Event: 18:00 CET (UTC+1) = 17:00 UTC. Mar 28: US on EDT, UK still on GMT */
+  /* Event: 18:00 WAT (UTC+1, no DST) = 17:00 UTC. Jul 11: US/EU on summer time, UK on BST */
   return [
-    "6:00 PM CET  — Paris / Berlin / Amsterdam",
-    "5:00 PM GMT  — London",
     "6:00 PM WAT  — Lagos / Abuja",
+    "5:00 PM GMT  — UTC",
+    "6:00 PM BST  — London",
+    "7:00 PM CEST — Paris / Berlin / Amsterdam",
     "1:00 PM EDT  — New York / Atlanta",
     "10:00 AM PDT — Los Angeles",
     "8:00 PM EAT  — Nairobi",
@@ -125,12 +154,19 @@ function zoomDetails() {
   return parts.join("\n");
 }
 
+function eventDescription() {
+  const parts = [];
+  if (C.eventTopic) parts.push(C.eventTopic, "");
+  parts.push(zoomDetails(), "", timezoneHint());
+  return parts.join("\n");
+}
+
 function gCalUrl() {
   if (C.zoomGoogleCalUrl) return C.zoomGoogleCalUrl;
   const d = calData();
-  const params = { action:"TEMPLATE", text:C.eventTitle||C.orgName, ctz:"Europe/Paris" };
+  const params = { action:"TEMPLATE", text:C.eventTitle||C.orgName, ctz:"Africa/Lagos" };
   if (d) params.dates = `${d.fmt(d.start)}/${d.fmt(d.end)}`;
-  if (C.zoomJoinUrl) { params.location = C.zoomJoinUrl; params.details = zoomDetails() + "\n\n" + timezoneHint(); }
+  if (C.zoomJoinUrl) { params.location = C.zoomJoinUrl; params.details = eventDescription(); }
   return `https://calendar.google.com/calendar/render?${new URLSearchParams(params)}`;
 }
 
@@ -138,7 +174,7 @@ function outlookUrl() {
   const d = calData();
   const params = { subject:C.eventTitle||C.orgName };
   if (d) { params.startdt = d.iso(d.start); params.enddt = d.iso(d.end); }
-  if (C.zoomJoinUrl) { params.location = C.zoomJoinUrl; params.body = zoomDetails() + "\n\n" + timezoneHint(); }
+  if (C.zoomJoinUrl) { params.location = C.zoomJoinUrl; params.body = eventDescription(); }
   return `https://outlook.live.com/calendar/0/deeplink/compose?${new URLSearchParams(params)}`;
 }
 
@@ -154,7 +190,7 @@ function yahooUrl() {
     const dur = parseFloat(C.eventDuration)||1;
     params.DUR = `${String(Math.floor(dur)).padStart(2,"0")}${String(Math.round((dur%1)*60)).padStart(2,"0")}`;
   }
-  if (C.zoomJoinUrl) { params.URL = C.zoomJoinUrl; params.DESC = zoomDetails() + "\n\n" + timezoneHint(); }
+  if (C.zoomJoinUrl) { params.URL = C.zoomJoinUrl; params.DESC = eventDescription(); }
   return `https://calendar.yahoo.com/?${new URLSearchParams(params)}`;
 }
 
@@ -171,8 +207,7 @@ function downloadIcal() {
     `SUMMARY:${title}`,
   ];
   if (C.zoomJoinUrl) lines.push(`LOCATION:${C.zoomJoinUrl}`);
-  const desc = (zoomDetails() + "\n\n" + timezoneHint()).replace(/\n/g,"\\n");
-  lines.push(`DESCRIPTION:${desc}`);
+  lines.push(`DESCRIPTION:${eventDescription().replace(/\n/g,"\\n")}`);
   lines.push(
     "BEGIN:VALARM","TRIGGER:-P1D","ACTION:DISPLAY",`DESCRIPTION:Tomorrow: ${title} at 6pm WAT`,"END:VALARM",
     "BEGIN:VALARM","TRIGGER:-PT1H","ACTION:DISPLAY",`DESCRIPTION:${title} starts in 1 hour`,"END:VALARM",
@@ -276,10 +311,26 @@ function App() {
         <div style={{ textAlign:"center", marginBottom:6 }}>
           <img src="https://i.postimg.cc/qMLhqG9L/Zoom-Banner-(2).png" alt={C.orgName} style={{ maxWidth: isMobile ? 320 : 460, width:"100%", display:"inline-block" }} />
         </div>
-        <div style={{ textAlign:"center", marginBottom:48 }}>
+        <div style={{ textAlign:"center", marginBottom:32 }}>
           <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:15, fontStyle:"italic", color:T.sub }}>{C.tagline}</div>
           {C.taglineRef && <div style={{ fontSize:11, letterSpacing:"0.2em", textTransform:"uppercase", color:T.accent, marginTop:4 }}>{C.taglineRef}</div>}
         </div>
+
+        {C.eventTopic && (
+          <div style={{ textAlign:"center", marginBottom:40 }}>
+            <div style={{ display:"inline-flex", flexDirection:"column", alignItems:"center", gap:10, padding:isMobile?"20px 24px":"24px 44px", borderRadius:14, background:`linear-gradient(135deg, ${T.accent}10, ${T.accent2}1f)`, border:`1px solid ${T.accent2}60` }}>
+              <div style={{ display:"inline-flex", alignItems:"center", gap:8, fontSize:10, letterSpacing:"0.3em", textTransform:"uppercase", color:T.accent2, fontWeight:700 }}>
+                <HeartIcon color={T.accent2}/> This Session's Focus
+              </div>
+              <div style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:isMobile?20:25, fontWeight:600, color:T.text, lineHeight:1.35, maxWidth:440 }}>
+                {C.eventTopic}
+              </div>
+              <div style={{ display:"inline-flex", alignItems:"center", gap:8, fontSize:13, color:T.sub, marginTop:4 }}>
+                <ClockIcon color={T.accent}/> {eventDateLabel()}
+              </div>
+            </div>
+          </div>
+        )}
         <div style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:12, padding:isMobile?"28px 24px":"40px 48px", marginBottom:32, backdropFilter:"blur(8px)" }}>
           <div style={{ fontSize:11, letterSpacing:"0.22em", textTransform:"uppercase", color:T.accent, marginBottom:12 }}>{C.welcomeTitle}</div>
           <p style={{ fontFamily:"'Cormorant Garamond',serif", fontSize:17, lineHeight:1.85, color:T.text, margin:"0 0 16px" }}>{C.welcomeBody}</p>
@@ -318,7 +369,7 @@ function App() {
 
           <SectionHead num="3" title="Your Intent"/>
           <div style={{ marginBottom:36 }}>
-            <Label>What are you seeking for your soul in this season? <span style={{ fontWeight:300 }}>Select all that apply.</span></Label>
+            <Label>What are you seeking for your health and wellbeing in this season? <span style={{ fontWeight:300 }}>Select all that apply.</span></Label>
             <div style={{ display:"flex", flexDirection:"column", gap:10, marginTop:10 }}>
               {INTENTS.map((item,i)=><Checkbox key={i} checked={form.intents.includes(item)} onClick={()=>toggle(item)} label={item}/>)}
             </div>
