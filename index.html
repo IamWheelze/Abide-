@@ -96,13 +96,11 @@ function eventDateLabel() {
   if (!C.eventDate || !C.eventTime) return "";
   const [y,mo,d] = C.eventDate.split("-").map(Number);
   const [h,mi]   = C.eventTime.split(":").map(Number);
-  const date     = new Date(y, mo-1, d);
-  const day      = date.toLocaleDateString("en-US", { weekday:"long" });
-  const mon      = date.toLocaleDateString("en-US", { month:"long" });
-  const hour12   = ((h+11)%12)+1;
-  const ampm     = h < 12 ? "AM" : "PM";
-  const minStr   = mi ? `:${String(mi).padStart(2,"0")}` : "";
-  return `${day}, ${mon} ${d}, ${y} · ${hour12}${minStr} ${ampm} WAT`;
+  /* Convert WAT (UTC+1) → UTC so the browser can localise to the viewer's timezone */
+  const utc = new Date(Date.UTC(y, mo-1, d, h - 1, mi));
+  const datePart = utc.toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric", year:"numeric" });
+  const timePart = utc.toLocaleTimeString("en-US", { hour:"numeric", minute:"2-digit", timeZoneName:"short" });
+  return `${datePart} · ${timePart}`;
 }
 
 function FormInput({ style, ...props }) {
@@ -209,7 +207,7 @@ function downloadIcal() {
   if (C.zoomJoinUrl) lines.push(`LOCATION:${C.zoomJoinUrl}`);
   lines.push(`DESCRIPTION:${eventDescription().replace(/\n/g,"\\n")}`);
   lines.push(
-    "BEGIN:VALARM","TRIGGER:-P1D","ACTION:DISPLAY",`DESCRIPTION:Tomorrow: ${title} at 6pm WAT`,"END:VALARM",
+    "BEGIN:VALARM","TRIGGER:-P1D","ACTION:DISPLAY",`DESCRIPTION:Tomorrow: ${title}`,"END:VALARM",
     "BEGIN:VALARM","TRIGGER:-PT1H","ACTION:DISPLAY",`DESCRIPTION:${title} starts in 1 hour`,"END:VALARM",
     "END:VEVENT","END:VCALENDAR"
   );
