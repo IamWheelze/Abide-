@@ -41,7 +41,7 @@ const C = {
   orgName:       "Abide",
   tagline:       "Beloved, I pray that you may prosper in all things and be in health, just as your soul prospers.",
   taglineRef:    "3 John 1:2",
-  eventTopic:    "Stewarding Your Health in Times of Responsibility",
+  eventTopic:    "Stewarding Your Health in Seasons of High Responsibility",
   welcomeTitle:  "A Sacred Pause for Your Wellbeing",
   welcomeBody:   "We are honored to invite you into this intentional space for senior women in leadership. In a season that often demands constant excellence — and quietly asks you to set your own wellbeing aside — Abide invites you to pause and consider what it means to steward your health with the same faithfulness you bring to those you lead. Together, we'll explore rest, renewal, and practical wisdom for sustaining your body, mind, and spirit through seasons of responsibility.",
   welcomeBody2:  "Please share a few details to reserve your place in this conversation.",
@@ -49,8 +49,8 @@ const C = {
   bgImageUrl:    "https://i.imgur.com/oV6YZ4J.jpeg",
 
   /* Zoom meeting details */
-  zoomJoinUrl:   "https://us06web.zoom.us/j/84699471218?pwd=RG1uXbno4ft5BXNa6dx3TQnwe3pigc.1",
-  zoomPasscode:  "",
+  zoomJoinUrl:   "https://us06web.zoom.us/j/89648951657?pwd=qbFlS3L0UFg7Tiv3ukpOmdqq4UgUin.1",
+  zoomPasscode:  "116717",
 
   /* Zoom-generated calendar links — leave blank to auto-build from zoomJoinUrl */
   zoomGoogleCalUrl: "",
@@ -96,13 +96,11 @@ function eventDateLabel() {
   if (!C.eventDate || !C.eventTime) return "";
   const [y,mo,d] = C.eventDate.split("-").map(Number);
   const [h,mi]   = C.eventTime.split(":").map(Number);
-  const date     = new Date(y, mo-1, d);
-  const day      = date.toLocaleDateString("en-US", { weekday:"long" });
-  const mon      = date.toLocaleDateString("en-US", { month:"long" });
-  const hour12   = ((h+11)%12)+1;
-  const ampm     = h < 12 ? "AM" : "PM";
-  const minStr   = mi ? `:${String(mi).padStart(2,"0")}` : "";
-  return `${day}, ${mon} ${d}, ${y} · ${hour12}${minStr} ${ampm} WAT`;
+  /* Convert WAT (UTC+1) → UTC so the browser can localise to the viewer's timezone */
+  const utc = new Date(Date.UTC(y, mo-1, d, h - 1, mi));
+  const datePart = utc.toLocaleDateString("en-US", { weekday:"long", month:"long", day:"numeric", year:"numeric" });
+  const timePart = utc.toLocaleTimeString("en-US", { hour:"numeric", minute:"2-digit", timeZoneName:"short" });
+  return `${datePart} · ${timePart}`;
 }
 
 function FormInput({ style, ...props }) {
@@ -209,7 +207,7 @@ function downloadIcal() {
   if (C.zoomJoinUrl) lines.push(`LOCATION:${C.zoomJoinUrl}`);
   lines.push(`DESCRIPTION:${eventDescription().replace(/\n/g,"\\n")}`);
   lines.push(
-    "BEGIN:VALARM","TRIGGER:-P1D","ACTION:DISPLAY",`DESCRIPTION:Tomorrow: ${title} at 6pm WAT`,"END:VALARM",
+    "BEGIN:VALARM","TRIGGER:-P1D","ACTION:DISPLAY",`DESCRIPTION:Tomorrow: ${title}`,"END:VALARM",
     "BEGIN:VALARM","TRIGGER:-PT1H","ACTION:DISPLAY",`DESCRIPTION:${title} starts in 1 hour`,"END:VALARM",
     "END:VEVENT","END:VCALENDAR"
   );
